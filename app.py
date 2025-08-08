@@ -1,5 +1,6 @@
 # app.py
 import os
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, Response, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from forms import LoginForm, NuevoEstudianteForm, CambiarPasswordForm, EditarEstudianteForm, NuevoSeguimientoForm, EditarSeguimientoForm
@@ -18,6 +19,8 @@ from database import (
     LISTA_ESTADO_ACADEMICO, LISTA_ESTADO_CIVIL, LISTA_OCUPACION_LABORAL,LISTA_TIENE_HIJOS, LISTA_NACIONALIDADES,
     LISTA_TIPO_INTERVENCION, LISTA_RESULTADO_CITA, LISTA_FUENTE_DERIVACION, LISTA_BENEFICIO_ARANCEL
 )
+
+load_dotenv() # Esta es la línea que faltaba
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')

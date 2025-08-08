@@ -16,3 +16,6 @@ seguimiento.db
 # Carpeta de gráficos generados
 graficos_generados/
 reportes_visuales_generados/
+
+# Variables de entorno
+.env
