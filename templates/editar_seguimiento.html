@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Seguimiento para {{ estudiante.nombre }}{% endblock %}
+
+{% block content %}
+    <h1>Editar Seguimiento de Sesión</h1>
+
+    {% if seguimiento and estudiante %}
+        <p><strong>Estudiante:</strong> {{ estudiante.nombre }} {{ estudiante.apellido_paterno }} (RUT: {{ estudiante.rut }})</p>
+        <p><strong>Fecha Original de la Sesión:</strong> {{ seguimiento.fecha_sesion }}</p>
+        <hr>
+
+        <form method="POST" action="" novalidate>
+            {{ form.hidden_tag() }}
+
+            <fieldset>
+                <legend>Información de la Sesión</legend>
+                <div class="form-group">
+                    {{ form.fecha_sesion.label }}
+                    {{ form.fecha_sesion(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.trabajadora_social_sesion.label }}
+                    {{ form.trabajadora_social_sesion(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.psicologo_sesion.label }}
+                    {{ form.psicologo_sesion(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.tipo_intervencion.label }}
+                    {{ form.tipo_intervencion(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.resultado_cita.label }}
+                    {{ form.resultado_cita(class="form-control") }}
+                </div>
+            </fieldset>
+        {% if mostrar_seccion_derivacion %}
+            <fieldset>
+                <legend>Estado Derivación Inicial</legend>
+                <div class="form-group">
+                    {{ form.estado_derivacion_cesfam_actual.label }}
+                    {{ form.estado_derivacion_cesfam_actual(class="form-control") }}
+                    <small>Registrar el estado de la primera gestión de hora en la red de salud.</small>
+                </div>
+            </fieldset>
+            {% endif %}
+
+            <fieldset>
+                <legend>Seguimiento de Controles en Red de Salud</legend>
+                <div class="form-group">
+                    {{ form.confirmacion_gestion_hora_cesfam.label }}
+                    {{ form.confirmacion_gestion_hora_cesfam(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.fechas_sesiones_cesfam.label }}
+                    {{ form.fechas_sesiones_cesfam(class="form-control", placeholder="Ej: 25/06/2025, 10/07/2025") }}
+                    <small>Registrar las fechas solo si el estudiante ha asistido.</small>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Bitácora de la Sesión</legend>
+                 <div class="form-group">
+                    {{ form.bitacora_sesion.label }}
+                    {{ form.bitacora_sesion(class="form-control", rows=8) }}
+                </div>
+            </fieldset>
+
+            {% if seguimiento.cambio_estado_programa_a == 'Alta del programa' %}
+                <fieldset>
+                    <legend>Criterios de Alta Registrados en esta Sesión</legend>
+                    <small>Estos criterios son informativos y no se pueden editar. Para corregirlos, crea un nuevo seguimiento de corrección.</small>
+
+                    <ul style="list-style-type: disc; margin-left: 20px; margin-top: 10px;">
+                        {% if seguimiento.alta_mejora_animo %}
+                            <li>Mejora en el estado anímico, aspecto físico y salud en general.</li>
+                        {% endif %}
+                        {% if seguimiento.alta_disminucion_riesgo %}
+                            <li>Disminución del riesgo suicida en el estudiante.</li>
+                        {% endif %}
+                        {% if seguimiento.alta_redes_apoyo %}
+                            <li>Cuenta con redes de apoyo intra y/o extrafamiliar.</li>
+                        {% endif %}
+                        {% if seguimiento.alta_adherencia_tratamiento %}
+                            <li>Ha adherido a tratamiento en la red de salud pública o privada.</li>
+                        {% endif %}
+                        {% if seguimiento.alta_no_registrado %}
+                            <li>Criterio de alta no registrado (2023 y 2024).</li>
+                        {% endif %}
+                    </ul>
+
+                    {# Verificamos si NINGUNO de los criterios fue marcado para mostrar un mensaje #}
+                    {% if not (seguimiento.alta_mejora_animo or seguimiento.alta_disminucion_riesgo or seguimiento.alta_redes_apoyo or seguimiento.alta_adherencia_tratamiento or seguimiento.alta_no_registrado) %}
+                        <p><em>No se marcaron criterios de alta en este seguimiento.</em></p>
+                    {% endif %}
+                </fieldset>
+            {% endif %}
+
+            <fieldset>
+                <legend>Eventos Registrados Originalmente en esta Sesión</legend>
+                <small>Estos campos son informativos y no se editan aquí para preservar el historial.</small>
+                {% if seguimiento.cambio_estado_programa_a %}
+                <div class="form-group" style="margin-top:15px;">
+                    <label>Cambio de Estado del Programa</label>
+                    <input type="text" value="{{ seguimiento.cambio_estado_programa_a }}" readonly class="readonly-field">
+                </div>
+                {% endif %}
+                {% if seguimiento.cambio_estado_academico_a %}
+                <div class="form-group">
+                    <label>Cambio de Estado Académico</label>
+                    <input type="text" value="{{ seguimiento.cambio_estado_academico_a }}" readonly class="readonly-field">
+                </div>
+                {% endif %}
+                {% if seguimiento.extension_programa_otorgada %}
+                <div class="form-group">
+                    <label>Extensión del Programa Otorgada</label>
+                    <input type="text" value="Sí, el {{ seguimiento.extension_programa_otorgada }}" readonly class="readonly-field">
+                </div>
+                {% endif %}
+            </fieldset>
+
+            <div class="form-group" style="margin-top: 20px; display: flex; gap: 10px;">
+                {{ form.submit(class="button button-primary") }}
+                <a href="{{ url_for('detalle_estudiante', rut_estudiante=estudiante.rut) }}" class="button button-secondary">Cancelar</a>
+            </div>
+        </form>
+    {% else %}
+        <p class="alert alert-danger">No se pudo cargar la información del seguimiento.</p>
+        <a href="{{ url_for('index') }}" class="button button-primary">Volver al Listado Principal</a>
+    {% endif %}
+{% endblock %}

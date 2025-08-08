@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Administrar Usuarios{% endblock %}
+
+{% block content %}
+    <h1>Administración de Usuarios</h1>
+
+    {# Mostrar mensajes flash (ej. para éxito al crear usuario) #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category | default('info') }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <p>
+        {# Botón Añadir Nuevo Usuario ahora usa button-primary #}
+        <a href="{{ url_for('crear_usuario') }}" class="button button-primary">Añadir Nuevo Usuario</a>
+    </p>
+
+    {% if usuarios %}
+        <table style="margin-top: 20px;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre de Usuario</th>
+                    <th>Nombre Completo</th>
+                    <th>Rol</th>
+                    <th>Activo</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usuario_item in usuarios %}
+                <tr>
+                    <td data-label="ID">{{ usuario_item.id }}</td>
+                    <td data-label="Nombre de Usuario">{{ usuario_item.username }}</td>
+                    <td data-label="Nombre Completo">{{ usuario_item.nombre_completo if usuario_item.nombre_completo else '-' }}</td>
+                    <td data-label="Rol">{{ usuario_item.rol }}</td>
+                    <td data-label="Activo">{% if usuario_item.activo == 1 %}Sí{% else %}No{% endif %}</td>
+                    <td data-label="Acciones">
+                        <a href="{{ url_for('editar_usuario', id_usuario=usuario_item.id) }}" class="button button-edit" style="padding: 5px 10px; font-size: 0.9em;">Editar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay usuarios registrados (aparte de usted, si es el administrador inicial).</p>
+    {% endif %}
+{% endblock %}

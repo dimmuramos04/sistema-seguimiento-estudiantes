@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Seguimiento para {{ estudiante.nombre }} {{ estudiante.apellido_paterno }}{% endblock %}
+
+{% block content %}
+    <h1>Agregar Nuevo Seguimiento</h1>
+
+    <p><strong>Estudiante:</strong> {{ estudiante.nombre }} {{ estudiante.apellido_paterno }} (RUT: {{ estudiante.rut }})</p>
+    <hr>
+
+    {% if alerta_derivacion_pendiente %}
+        <div class="alert alert-danger" role="alert">
+            <strong>¡Atención!</strong> {{ alerta_derivacion_pendiente }}
+        </div>
+    {% endif %}
+
+    {# nuevo_seguimiento.html (versión con secciones) #}
+
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <fieldset>
+            <legend>Información de la Sesión</legend>
+
+            <div class="form-group">
+                {{ form.fecha_sesion.label }}
+                {{ form.fecha_sesion(class="form-control") }}
+                {% for error in form.fecha_sesion.errors %}<p style="color: red;">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.trabajadora_social_sesion.label }}
+                {{ form.trabajadora_social_sesion(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.psicologo_sesion.label }}
+                {{ form.psicologo_sesion(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.resultado_cita.label }}
+                {{ form.resultado_cita(class="form-control") }}
+                <small>Seleccionar "Otro" si el Acompañamiento y Seguimiento se realizó de otra manera.</small>
+                {% for error in form.resultado_cita.errors %}<p style="color: red;">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.tipo_intervencion.label }}
+                {{ form.tipo_intervencion(class="form-control") }}
+                {% for error in form.tipo_intervencion.errors %}<p style="color: red;">{{ error }}</p>{% endfor %}
+            </div>
+
+        </fieldset>
+    {% if mostrar_seccion_derivacion %}
+        <fieldset>
+            <legend>Estado Derivación Inicial</legend>
+            <div class="form-group">
+                {{ form.estado_derivacion_cesfam_actual.label }}
+                {{ form.estado_derivacion_cesfam_actual(class="form-control") }}
+                <small>Registrar el estado de la primera gestión de hora en la red de salud.</small>
+            </div>
+        </fieldset>
+        {% endif %}
+
+        <fieldset>
+            <legend>Seguimiento de Controles en Red de Salud</legend>
+            <div class="form-group">
+                {{ form.confirmacion_gestion_hora_cesfam.label }}
+                {{ form.confirmacion_gestion_hora_cesfam(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.fechas_sesiones_cesfam.label }}
+                {{ form.fechas_sesiones_cesfam(class="form-control", placeholder="Ej: 25/06/2025, 10/07/2025") }}
+                <small>Registrar las fechas solo si el estudiante ha asistido.</small>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Bitácora de la Sesión</legend>
+            <div class="form-group">
+                {{ form.bitacora_sesion.label }}
+                {{ form.bitacora_sesion(class="form-control", rows=8) }}
+                {% for error in form.bitacora_sesion.errors %}<p style="color: red;">{{ error }}</p>{% endfor %}
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Información Adicional del Estudiante</legend>
+            <div class="form-group">
+                {{ form.beneficio_arancel.label }}
+                {{ form.beneficio_arancel(class="form-control") }}
+                <small>Este campo actualiza la ficha principal del estudiante. Llenar solo si no tiene información o es incorrecta.</small>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Actualización de Estados</legend>
+            <div class="form-group">
+                {{ form.nuevo_estado_programa.label }}
+                {{ form.nuevo_estado_programa(class="form-control", id="estado_programa_select") }}
+                <small>Seleccione un nuevo estado solo si este cambia como resultado de la sesión actual.</small>
+            </div>
+            <fieldset id="criterios_alta_fieldset" style="display: none; border-style: dashed;">
+                <legend style="font-size: 1em; color: #555;">Criterios de Alta Cumplidos</legend>
+
+                <div class="form-group">
+                    {{ form.alta_mejora_animo(class="form-check-input") }}
+                    {{ form.alta_mejora_animo.label(class="form-check-label") }}
+                </div>
+                <div class="form-group">
+                    {{ form.alta_disminucion_riesgo(class="form-check-input") }}
+                    {{ form.alta_disminucion_riesgo.label(class="form-check-label") }}
+                </div>
+                <div class="form-group">
+                    {{ form.alta_redes_apoyo(class="form-check-input") }}
+                    {{ form.alta_redes_apoyo.label(class="form-check-label") }}
+                </div>
+                <div class="form-group">
+                    {{ form.alta_adherencia_tratamiento(class="form-check-input") }}
+                    {{ form.alta_adherencia_tratamiento.label(class="form-check-label") }}
+                </div>
+                <div class="form-group">
+                    {{ form.alta_no_registrado(class="form-check-input") }}
+                    {{ form.alta_no_registrado.label(class="form-check-label") }}
+                </div>
+
+            </fieldset>
+
+            <hr style="margin: 20px 0;">
+
+            <div class="form-group">
+                {{ form.nuevo_estado_academico.label }}
+                {{ form.nuevo_estado_academico(class="form-control") }}
+                <small>Seleccione un nuevo estado solo si este cambia como resultado de la sesión actual.</small>
+            </div>
+
+            <hr style="margin: 20px 0;">
+
+            <div class="form-group">
+                {{ form.otorgar_extension_programa(class="form-check-input") }}
+                {{ form.otorgar_extension_programa.label(class="form-check-label") }}
+                <small style="display: block; margin-top: 5px;">Marcar solo en la sesión donde se decide prolongar el seguimiento por 3 meses.</small>
+            </div>
+
+
+        </fieldset>
+        <fieldset>
+            <legend>Acciones Adicionales</legend>
+            <div class="form-group">
+                {{ form.es_correccion(class="form-check-input", id="es_correccion_checkbox") }}
+                {{ form.es_correccion.label(class="form-check-label") }}
+            </div>
+
+            <div class="form-group" id="seleccionar_correccion_div" style="display: none;">
+                {{ form.corrige_id_seguimiento.label }}
+                {{ form.corrige_id_seguimiento(class="form-control") }}
+            </div>
+        </fieldset>
+
+        <div class="form-group" style="margin-top: 20px; display: flex; gap: 10px;">
+            {{ form.submit(class="button button-primary") }}
+            <a href="{{ url_for('detalle_estudiante', rut_estudiante=estudiante.rut) }}" class="button button-secondary">Cancelar</a>
+        </div>
+    </form>
+<script>
+    const estadoSelect = document.getElementById('estado_programa_select');
+    const criteriosFieldset = document.getElementById('criterios_alta_fieldset');
+    const correccionCheckbox = document.getElementById('es_correccion_checkbox');
+    const seleccionarCorreccionDiv = document.getElementById('seleccionar_correccion_div');
+
+    function toggleCriteriosFieldset() {
+        // Si el valor seleccionado es "Alta del programa", mostramos el fieldset de criterios
+        if (estadoSelect.value === 'Alta del programa') {
+            criteriosFieldset.style.display = 'block';
+        } else {
+            // Si no, lo ocultamos
+            criteriosFieldset.style.display = 'none';
+        }
+    }
+    function toggleCorreccionField() {
+        // Si el checkbox de corrección está marcado, mostramos el menú
+        if (correccionCheckbox.checked) {
+            seleccionarCorreccionDiv.style.display = 'block';
+        } else {
+            seleccionarCorreccionDiv.style.display = 'none';
+        }
+    }
+    toggleCorreccionField(); // Al cargar la página
+    correccionCheckbox.addEventListener('change', toggleCorreccionField); // Al hacer clic
+
+    // Ejecutamos la función al cargar la página
+    toggleCriteriosFieldset();
+
+    // Ejecutamos la función cada vez que el usuario cambia la selección
+    estadoSelect.addEventListener('change', toggleCriteriosFieldset);
+</script>
+{% endblock %}

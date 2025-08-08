@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Lista de Estudiantes{% endblock %}
+
+{% block content %}
+    <h1>Lista de Estudiantes</h1>
+
+    {% if estudiantes_con_alerta %}
+    <div class="alert alert-warning" role="alert" style="border: 1px solid #ffc107; padding: 15px; margin-bottom: 25px; border-radius: 8px;">
+        <h4 style="margin-top: 0; color: #856404;">Alerta: Estudiantes que Requieren Seguimiento</h4>
+        <p>Los siguientes estudiantes activos no han tenido un seguimiento en más de 30 días o nunca han tenido uno.</p>
+        <ul style="margin-bottom: 0;">
+            {% for estudiante in estudiantes_con_alerta %}
+                <li>
+                    <strong>
+                        <a href="{{ url_for('detalle_estudiante', rut_estudiante=estudiante.rut) }}">
+                            {{ estudiante.nombre }} {{ estudiante.apellido_paterno }} {{ estudiante.apellido_materno }}
+                        </a>
+                    </strong>
+                    -
+                    {% if estudiante.ultima_sesion %}
+                        Último seguimiento hace <strong>{{ estudiante.dias_sin_seguimiento }}</strong> días (el {{ estudiante.ultima_sesion }}).
+                    {% else %}
+                        <strong>Nunca ha tenido un seguimiento registrado.</strong>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if conteo_anual %}
+        <h2>Resumen de Estudiantes Activos por Año de Ingreso</h2>
+        <div class="stats-container">
+            {% for item in conteo_anual %}
+                <div class="stat-card">
+                    <div class="stat-number">{{ item.cantidad_activos }}</div>
+                    <div class="stat-label">Estudiantes Activos</div>
+                    <div class="stat-year">Ingreso {{ item.anio_ingreso }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="GET" action="{{ url_for('index') }}" class="search-form" style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: flex-end; gap: 10px;">
+            <div class="form-group" style="flex-grow: 1;">
+                <label for="search_term_input" style="display:block; margin-bottom:2px;">Buscar por RUT, Nombre o Apellido:</label>
+                <input type="text" id="search_term_input" name="search_term" placeholder="Escriba aquí..." value="{{ search_term_active if search_term_active else '' }}" style="padding: 8px; width: 100%; box-sizing: border-box;">
+            </div>
+
+            <div class="form-group">
+                <label for="filter_estado_select" style="display:block; margin-bottom:2px;">Filtrar por Estado:</label>
+                <select id="filter_estado_select" name="filter_estado" style="padding: 8px;">
+                    <option value="">Todos los Estados</option>
+                    {% for estado_opcion in lista_estado_programa_template %}
+                        <option value="{{ estado_opcion }}" {% if filter_estado_active == estado_opcion %}selected{% endif %}>{{ estado_opcion }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="align-self: center; padding-bottom: 8px;"> {# Alineación y padding para el checkbox #}
+                <input type="checkbox" id="show_archived_checkbox" name="show_archived" value="true" {% if show_archived_active %}checked{% endif %}>
+                <label for="show_archived_checkbox" style="font-weight: normal; display: inline;">Mostrar Archivados</label>
+            </div>
+
+            <div class="form-group">
+                {# Botón Buscar/Filtrar ahora usa button-primary #}
+                <input type="submit" value="Buscar/Filtrar" class="button button-primary">
+            </div>
+
+            {% if search_term_active or filter_estado_active %}
+                <div class="form-group">
+                    {# Botón Limpiar Filtros ahora usa button-secondary #}
+                    <a href="{{ url_for('index') }}" class="button button-secondary">Limpiar Filtros</a>
+                </div>
+            {% endif %}
+        </div>
+    </form>
+
+    {% if estudiantes %}
+        <table>
+            <thead>
+                <tr>
+                    <th>RUT</th>
+                    <th>Nombre Completo</th>
+                    <th>Carrera/Programa</th>
+                    <th>Estado en Programa</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for estudiante_item in estudiantes %}
+                <tr>
+                    <td data-label="RUT">{{ estudiante_item.rut }}</td>
+                    <td data-label="Nombre Completo">{{ estudiante_item.nombre }} {{ estudiante_item.apellido_paterno }} {{ estudiante_item.apellido_materno }}</td>
+                    <td data-label="Carrera/Programa">{{ estudiante_item.carrera_programa }}</td>
+                    <td data-label="Estado en Programa"><span class="status-{{ estudiante_item.estado_en_programa | lower | replace(' ', '-') }}">{{ estudiante_item.estado_en_programa }}</span></td>
+                    <td data-label="Acciones">
+                        <a href="{{ url_for('detalle_estudiante', rut_estudiante=estudiante_item.rut) }}" class="button button-primary" style="padding: 5px 10px; font-size: 0.9em;">Ver Detalles</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        {% if search_term_active or filter_estado_active %}
+            <p>No se encontraron estudiantes que coincidan con los criterios de búsqueda/filtro.</p>
+        {% else %}
+            <p>No hay estudiantes registrados todavía.</p>
+        {% endif %}
+    {% endif %}
+
+    {% if current_user.is_authenticated and current_user.rol == 'admin' %}
+        <hr style="margin-top: 20px; margin-bottom: 20px;">
+        <h2>Descargar Datos</h2>
+        {# Botones de Descarga ahora usan button-success y button-primary respectivamente #}
+        <a href="{{ url_for('descargar_estudiantes_csv') }}" class="button button-success">Descargar Estudiantes (CSV)</a>
+        <a href="{{ url_for('descargar_seguimientos_csv') }}" class="button button-primary" style="margin-left:10px;">Descargar Seguimientos (CSV)</a>
+    {% endif %}
+
+{% endblock %}

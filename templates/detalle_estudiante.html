@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de {% if estudiante %}{{ estudiante.nombre }} {{ estudiante.apellido_paterno }}{% else %}Estudiante{% endif %}{% endblock %}
+
+{% block content %}
+    {% if estudiante %}
+        {% set puede_editar_estudiante = False %}
+        {% if current_user.rol in ['admin', 'ingreso'] %}
+            {% set puede_editar_estudiante = True %}
+        {% elif current_user.rol == 'profesional' and (estudiante.trabajadora_social_asignada == current_user.nombre_completo or estudiante.psicologo_asignado == current_user.nombre_completo) %}
+            {% set puede_editar_estudiante = True %}
+        {% endif %}
+
+        {% set puede_agregar_seguimiento = False %}
+        {% if current_user.rol == 'admin' %}
+            {% set puede_agregar_seguimiento = True %}
+        {% elif current_user.rol == 'profesional' and (estudiante.trabajadora_social_asignada == current_user.nombre_completo or estudiante.psicologo_asignado == current_user.nombre_completo) %}
+            {% set puede_agregar_seguimiento = True %}
+        {% endif %}
+
+
+        <h1>Ficha del Estudiante</h1>
+
+        <div class="action-toolbar">
+            {% if puede_editar_estudiante %}
+                <a href="{{ url_for('editar_estudiante', rut_estudiante=estudiante.rut) }}" class="button button-edit">Editar Datos del Estudiante</a>
+            {% endif %}
+            {% if puede_agregar_seguimiento %}
+                <a href="{{ url_for('nuevo_seguimiento', rut_estudiante=estudiante.rut) }}" class="button button-primary">Agregar Nuevo Seguimiento</a>
+            {% endif %}
+        </div>
+
+        <div class="details-box">
+            <h2>Datos Personales y de Contacto</h2>
+            <hr>
+            <p><strong>RUT:</strong> {{ estudiante.rut }}</p>
+            <p><strong>Nombre Completo:</strong> {{ estudiante.nombre }} {{ estudiante.apellido_paterno }} {{ estudiante.apellido_materno }}</p>
+            <p><strong>Edad:</strong> {{ edad if edad else 'No registrada' }} años</p>
+            <p><strong>Nacionalidad:</strong> {{ estudiante.nacionalidad if estudiante.nacionalidad else 'No registrada' }}</p>
+            <p><strong>Estado Civil:</strong> {{ estudiante.estado_civil if estudiante.estado_civil else 'No registrado' }}</p>
+            <p><strong>Hijos/as:</strong> {{ estudiante.tiene_hijos if estudiante.tiene_hijos else 'No registrado' }}</p>
+            <p><strong>Ocupación Laboral:</strong> {{ estudiante.ocupacion_laboral if estudiante.ocupacion_laboral else 'No registrada' }}</p>
+            <p><strong>Residencia Académica:</strong> {{ estudiante.residencia_academica if estudiante.residencia_academica else 'No registrada' }}</p>
+            <p><strong>Residencia Familiar:</strong> {{ estudiante.residencia_familiar if estudiante.residencia_familiar else 'No registrada' }}</p>
+            <p><strong>Celular:</strong> {{ estudiante.celular if estudiante.celular else 'No registrado' }}</p>
+        </div>
+
+        <div class="details-box">
+            <h2>Información Académica y del Programa</h2>
+            <hr>
+            <p><strong>Carrera/Programa:</strong> {{ estudiante.carrera_programa }}</p>
+            <p><strong>Estado Académico:</strong> {{ estudiante.estado_academico if estudiante.estado_academico else 'No registrado' }}</p>
+            <p><strong>Beneficio de Arancel:</strong> {{ estudiante.beneficio_arancel if estudiante.beneficio_arancel else 'No registrado' }}</p>
+            <p><strong>Fecha Ingreso al Programa:</strong> {{ estudiante.fecha_ingreso_programa }}</p>
+            <p><strong>Fuente de Derivación:</strong> {{ estudiante.fuente_derivacion if estudiante.fuente_derivacion else 'No registrada' }}</p>
+            <p><strong>Estado en Programa:</strong> <span class="status-{{ estudiante.estado_en_programa | lower | replace(' ', '-') }}">{{ estudiante.estado_en_programa }}</span></p>
+            
+            {% if fecha_ultima_extension %}
+                <p style="color:var(--color-uls-rojo); font-weight: bold;">Extensión del programa otorgada el: {{ fecha_ultima_extension }}</p>
+            {% endif %}
+            
+            {% if estudiante.estado_en_programa and estudiante.estado_en_programa.lower().strip() == 'alta del programa' %}
+            <div class="card mt-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>Detalles del Alta del Programa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if seguimiento_alta %}
+                        <p>El alta fue registrada en el seguimiento del día <strong>{{ seguimiento_alta.fecha_sesion }}</strong>. Los criterios seleccionados fueron:</p>
+                        <ul>
+                            <!-- CAMBIO APLICADO AQUÍ: se añade |int para forzar la conversión a número -->
+                            {% if seguimiento_alta.alta_mejora_animo|int == 1 %}
+                                <li>Mejora del estado de ánimo y/o disminución de la sintomatología.</li>
+                            {% endif %}
+                            {% if seguimiento_alta.alta_disminucion_riesgo|int == 1 %}
+                                <li>Disminución del riesgo psicosocial.</li>
+                            {% endif %}
+                            {% if seguimiento_alta.alta_redes_apoyo|int == 1 %}
+                                <li>Fortalecimiento de las redes de apoyo.</li>
+                            {% endif %}
+                            {% if seguimiento_alta.alta_adherencia_tratamiento|int == 1 %}
+                                <li>Adherencia a tratamiento en red de salud.</li>
+                            {% endif %}
+                            {% if seguimiento_alta.alta_no_registrado|int == 1 %}
+                                <li>Criterio de alta no registrado (2023 y 2024).</li>
+                            {% endif %}
+                        </ul>
+
+                        {% set total_criterios = [
+                            seguimiento_alta.alta_mejora_animo|int,
+                            seguimiento_alta.alta_disminucion_riesgo|int,
+                            seguimiento_alta.alta_redes_apoyo|int,
+                            seguimiento_alta.alta_adherencia_tratamiento|int,
+                            seguimiento_alta.alta_no_registrado|int
+                        ] | sum %}
+
+                        {% if total_criterios == 0 %}
+                            <p class="text-muted">Nota: No se especificaron criterios puntuales de alta en el seguimiento correspondiente.</p>
+                        {% endif %}
+
+                    {% else %}
+                        <p class="text-warning">El estado del estudiante es "Alta del programa", pero no se encontró un seguimiento que documente los criterios del alta.</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <p><strong>Trabajadora Social:</strong> {{ estudiante.trabajadora_social_asignada }}</p>
+            <p><strong>Psicólogo/a:</strong> {{ estudiante.psicologo_asignado }}</p>
+             <p>
+                <strong>Autorización para Uso de Datos:</strong>
+                {% if estudiante.fecha_autorizacion_investigacion %}
+                    <span style="color: green; font-weight: bold;">Sí</span> (Otorgada el: {{ estudiante.fecha_autorizacion_investigacion }})
+                {% else %}
+                    <span style="color: red; font-weight: bold;">No</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="details-box">
+            <h2>Red de Apoyo / Contacto de Emergencia</h2>
+            <hr>
+            <p><strong>Contacto de Emergencia:</strong> {{ estudiante.nombre_contacto_emergencia if estudiante.nombre_contacto_emergencia else 'No registrado' }}</p>
+            <p><strong>Parentesco:</strong> {{ estudiante.parentesco_contacto_emergencia if estudiante.parentesco_contacto_emergencia else 'No registrado' }}</p>
+            <p><strong>Teléfono Contacto:</strong> {{ estudiante.telefono_contacto_emergencia if estudiante.telefono_contacto_emergencia else 'No registrado' }}</p>
+        </div>
+        <div class="details-box">
+            <h2>Información de Derivación CESFAM (Ingreso)</h2>
+            <hr>
+            <p><strong>Fecha Derivación CESFAM:</strong> {{ estudiante.fecha_derivacion_cesfam if estudiante.fecha_derivacion_cesfam else 'No registrada' }}</p>
+            <p><strong>CESFAM Derivación:</strong> {{ estudiante.cesfam_derivacion if estudiante.cesfam_derivacion else 'No registrado' }}</p>
+            <p><strong>Tentativa o Ideación (al ingreso):</strong> {{ estudiante.tentativa_ideacion }}</p>
+            <p><strong>Estado Actual de la Derivación:</strong> <span style="font-weight: bold; color: var(--color-uls-azul);">{{ estudiante.estado_derivacion_maestro }}</span></p>
+        </div>
+
+        <hr style="margin: 30px 0;">
+
+        <h2>Historial de Seguimientos</h2>
+
+        {% if seguimientos %}
+            <div class="seguimientos-list">
+                {% for seguimiento_item in seguimientos %}
+                    <div class="seguimiento-entry
+                                {% if seguimiento_item.fue_corregido %}seguimiento-anulado{% endif %}
+                                {% if seguimiento_item.es_correccion %}seguimiento-correccion{% endif %}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <h4>
+                                Sesión del {{ seguimiento_item.fecha_sesion }} (ID: {{ seguimiento_item.id_seguimiento }})
+                                {% if seguimiento_item.fue_corregido %}
+                                    <span class="badge-anulado">ANULADO</span>
+                                {% endif %}
+                                {% if seguimiento_item.es_correccion %}
+                                    <span class="badge-correccion">CORRECCIÓN</span>
+                                {% endif %}
+                            </h4>
+                            <div style="display: flex; gap: 5px;">
+                                <a href="{{ url_for('editar_seguimiento', id_seguimiento=seguimiento_item.id_seguimiento) }}" class="button button-secondary" style="padding: 5px 10px; font-size: 0.9em;">Editar</a>
+                                {% if current_user.rol == 'admin' %}
+                                    <form method="POST" action="{{ url_for('eliminar_seguimiento', id_seguimiento=seguimiento_item.id_seguimiento) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este seguimiento?');">
+                                        <input type="submit" value="Eliminar" class="button button-danger" style="padding: 5px 10px; font-size: 0.9em;">
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p><strong>Tipo de Intervención:</strong> {{ seguimiento_item.tipo_intervencion }}</p>
+                        <p><strong>Resultado de la Cita:</strong> {{ seguimiento_item.resultado_cita }}</p>
+                        {% if seguimiento_item.estado_derivacion_cesfam_actual %}
+                            <p><strong>Estado Derivación CESFAM:</strong> {{ seguimiento_item.estado_derivacion_cesfam_actual }}</p>
+                        {% endif %}
+                        {% if seguimiento_item.cambio_estado_programa_a %}
+                            <p style="color: #dc3545; font-weight: bold;"><strong>Cambio de Estado del Programa:</strong> {{ seguimiento_item.cambio_estado_programa_a }}</p>
+                        {% endif %}
+                        {% if seguimiento_item.cambio_estado_academico_a %}
+                            <p style="color: #17a2b8; font-weight: bold;"><strong>Cambio de Estado Académico:</strong> {{ seguimiento_item.cambio_estado_academico_a }}</p>
+                        {% endif %}
+                        <p><strong>Bitácora:</strong></p>
+                        <pre class="bitacora-text">{{ seguimiento_item.bitacora_sesion }}</pre>
+                        {% if seguimiento_item.creado_por_usuario %}
+                        <p style="text-align: right; font-size: 0.8em; color: #777;">
+                            <em>Registrado por: {{ seguimiento_item.creado_por_usuario }}</em>
+                        </p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No hay seguimientos registrados para este estudiante.</p>
+        {% endif %}
+
+    {% else %}
+        <h1>Estudiante no encontrado</h1>
+        <p>El RUT proporcionado no corresponde a un estudiante registrado.</p>
+        <a href="{{ url_for('index') }}" class="button button-primary">Volver al Listado</a>
+    {% endif %}
+
+    <hr style="margin: 30px 0;">
+    <h2>Historial de Cambios en la Ficha</h2>
+    {% if historial %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha del Cambio</th>
+                    <th>Usuario</th>
+                    <th>Detalles de la Modificación</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cambio in historial %}
+                <tr>
+                    <td data-label="Fecha">{{ cambio.fecha_cambio }}</td>
+                    <td data-label="Usuario">{{ cambio.nombre_usuario }}</td>
+                    <td data-label="Detalles">{{ cambio.detalles }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay cambios registrados para este estudiante.</p>
+    {% endif %}
+
+{% endblock %}
+

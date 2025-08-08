@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Programa de Seguimiento - ULS{% endblock %}</title> {# Título modificado #}
+    <style>
+        /* Definir variables CSS para los colores corporativos para fácil reutilización */
+        :root {
+            --color-uls-azul: #003082;  /* [cite: 46] */
+            --color-uls-rojo: #CF142B;  /* [cite: 46] */
+            --color-texto-nav: #FFFFFF; /* [cite: 46] */
+            --color-fondo-claro: #f4f4f4;
+            --color-texto-principal: #333;
+            --color-boton-primario-fondo: var(--color-uls-azul);
+            --color-boton-primario-texto: #FFFFFF;
+            --color-boton-secundario-fondo: #6c757d;
+            --color-boton-secundario-texto: #FFFFFF;
+            --color-boton-peligro-fondo: var(--color-uls-rojo);
+            --color-boton-peligro-texto: #FFFFFF;
+            --color-boton-exito-fondo: #28a745;
+            --color-boton-exito-texto: #FFFFFF;
+            --color-boton-editar-fondo: #ffc107;
+            --color-boton-editar-texto: #212529;
+        }
+
+        body {
+            font-family: 'Museo Sans', sans-serif;
+            margin: 0;
+            background-color: var(--color-fondo-claro);
+            color: var(--color-texto-principal);
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--color-uls-azul);
+            padding: 10px 20px;
+            color: var(--color-texto-nav);
+        }
+        nav a {
+            color: var(--color-texto-nav);
+            margin-right: 15px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        nav .nav-links a:hover, nav .nav-user a.button:hover {
+            text-decoration: underline;
+        }
+        nav .nav-logo img {
+            height: 40px;
+            margin-right: 15px;
+        }
+        nav .nav-user span {
+            margin-right: 15px;
+        }
+        nav div:last-child a:last-child {
+            margin-right: 0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin: 20px;
+        }
+        h1, h2 { color: var(--color-texto-principal); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            table-layout: auto;
+            border: 1px solid #ddd;
+        }
+
+        thead {
+            display: table-header-group;
+            background-color: #f0f0f0;
+        }
+
+        tbody {
+            display: table-row-group;
+        }
+
+        tr {
+            display: table-row;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr: last-child {
+            border-bottom: none;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            display: table-cell;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 15px; /* Espacio vertical entre cada campo. Puedes ajustar este valor si quieres más o menos. */
+        }
+        .form-group input[type="text"],
+        .form-group input[type="password"],
+        .form-group input[type="date"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 1em;
+
+            resize: vertical;
+            overflow-wrap: break-word;
+        }
+
+        .button { /* Estilo base para todos los botones */
+            padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; text-decoration: none; display: inline-block; color: white;
+        }
+        .button-primary { background-color: var(--color-boton-primario-fondo); color: var(--color-boton-primario-texto); }
+        .button-primary:hover { background-color: color-mix(in srgb, var(--color-boton-primario-fondo) 80%, black); }
+
+        .button-danger { background-color: var(--color-boton-peligro-fondo); color: var(--color-boton-peligro-texto); }
+        .button-danger:hover { background-color: color-mix(in srgb, var(--color-boton-peligro-fondo) 80%, black); }
+
+        .button-success { background-color: var(--color-boton-exito-fondo); color: var(--color-boton-exito-texto); }
+        .button-success:hover { background-color: color-mix(in srgb, var(--color-boton-exito-fondo) 80%, black); }
+
+        .button-secondary { background-color: var(--color-boton-secundario-fondo); color: var(--color-boton-secundario-texto); }
+        .button-secondary:hover { background-color: color-mix(in srgb, var(--color-boton-secundario-fondo) 80%, black); }
+
+        .button-edit { background-color: var(--color-boton-editar-fondo); color: var(--color-boton-editar-texto); }
+        .button-edit:hover { background-color: color-mix(in srgb, var(--color-boton-editar-fondo) 80%, black); }
+
+
+        .readonly-field { background-color: #e9ecef; cursor: not-allowed; }
+        .status-activo { color: green; font-weight: bold; }
+        .status-desertó { color: orange; font-weight: bold; }
+        /* ... otros estilos de status ... */
+
+        .alert { padding: 10px; margin-bottom: 15px; border: 1px solid transparent; border-radius: 4px; color: #fff; }
+        .alert-danger { background-color: var(--color-uls-rojo); }
+        .alert-success { background-color: var(--color-boton-exito-fondo); }
+        .alert-info { background-color: #17a2b8; }
+        .alert-warning { background-color: #ffc107; color: #212529; }
+
+
+        @media screen and (max-width: 768px) {
+
+            table thead {
+                border: none;
+                clip: rect(0 0 0 0);
+                height: 1px;
+                margin: -1px;
+                overflow: hidden;
+                padding: 0;
+                position: absolute;
+                width: 1px;
+            }
+
+            table td {
+                display: block;
+                text-align: right;
+                font-size: 0.9em;
+                border-bottom: 1px dotted #ccc;
+                padding-left: 50%;
+                position: relative;
+            }
+
+            table tr {
+                display: block;
+                margin-bottom: 1em;
+                border-bottom: 5px solid var(--color-uls-azul);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            table td:last-child {
+                border-bottom: 0;
+            }
+
+            table td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                padding-right: 10px;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: bold;
+                color: var(--color-uls-azul);
+            }
+
+            .search-form > div {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .search-form .form-group {
+                width: 100%;
+            }
+        }
+
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-left: 5px solid var(--color-uls-azul);
+            border-radius: 8px;
+            padding: 20px;
+            flex-grow: 1;
+            min-width: 180px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Estilo para el número grande */
+        .stat-number {
+            font-size: 3em;
+            font-weight: 700;
+            color: var(--color-uls-azul);
+            line-height: 1;
+        }
+
+        /* Estilo para la etiqueta "Estudiantes Activos" */
+        .stat-label {
+            font-size: 1em;
+            color: #6c757d; /* Un gris sutil */
+            margin-top: 5px;
+        }
+
+        /* Estilo para el año */
+        .stat-year {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #343a40;
+            margin-top: 10px;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 3px 8px;
+            display: inline-block;
+        }
+
+        .login-box {
+            max-width: 450px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* La caja principal */
+        .login-box {
+            max-width: 450px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            padding: 35px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            border-top: 5px solid var(--color-uls-azul);
+        }
+
+        /* El título dentro de la caja */
+        .login-box h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            color: var(--color-uls-azul);
+        }
+
+        /* Ajuste para los grupos de formulario (label + input) */
+        .login-box .form-group {
+            margin-bottom: 22px;
+        }
+
+        /* Las etiquetas (label) de los campos */
+        .login-box label {
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        /* Los campos de texto y contraseña */
+        .login-box input[type="text"],
+        .login-box input[type="password"] {
+            padding: 12px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .login-box input[type="text"]:focus,
+        .login-box input[type="password"]:focus {
+            border-color: var(--color-uls-azul);
+            box-shadow: 0 0 8px rgba(0, 48, 130, 0.2);
+            outline: none;
+        }
+
+        /* El botón de inicio de sesión dentro de la caja */
+        .login-box .button-primary {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background-color 0.3s;
+        }
+
+        /* Efecto hover para el botón */
+        .login-box .button-primary:hover {
+            background-color: var(--color-uls-rojo) !important;
+        }
+
+        .app-title-header {
+            text-align: center;
+            padding: 10px 0;
+            margin-bottom: 15px;
+        }
+
+       .app-title-header h2 {
+            font-family: 'Museo Sans', sans-serif;
+            font-weight: 500;
+            font-size: 1.7em;
+            color: var(--color-uls-azul);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .app-title-acronym {
+            color: var(--color-uls-rojo);
+            font-weight: 700;
+        }
+
+        pre.bitacora-text {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-size: 0.95em;
+            line-height: 1.6;
+
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+
+        fieldset {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        legend {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--color-uls-azul);
+            padding: 0 10px;
+            margin-left: 10px;
+        }
+        .details-box {
+            background-color: #fdfdfd;
+            border: 1px solid #e0e0e0;
+            border-left: 5px solid var(--color-uls-azul);
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin-bottom: 30px;
+        }
+
+        /* Mejora la legibilidad de los párrafos dentro de la caja */
+        .details-box p {
+            margin: 10px 0;
+            line-height: 1.6;
+            font-size: 1.05em;
+        }
+        .details-box p strong {
+            color: #333;
+        }
+
+        /* Contenedor para los botones de acción */
+        .action-toolbar {
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .seguimiento-entry {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .seguimiento-entry h4 {
+            margin-top: 0;
+            color: var(--color-uls-azul);
+        }
+
+        .details-box h2 {
+            color: var(--color-uls-azul);
+            font-size: 1.3em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        /* Estilo para un seguimiento que fue un error y se corrigió después */
+        .seguimiento-anulado {
+            opacity: 0.6;
+            background-color: #f8f9fa;
+            border-left: 5px solid #6c757d;
+        }
+        .seguimiento-anulado h4 {
+            text-decoration: line-through;
+        }
+
+        /* Estilo para el seguimiento que ES la corrección */
+        .seguimiento-correccion {
+            border-left: 5px solid var(--color-boton-editar-fondo);
+        }
+
+        /* Pequeñas etiquetas de texto para mayor claridad */
+        .badge-anulado, .badge-correccion {
+            font-size: 0.7em;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 10px;
+            color: white;
+            margin-left: 15px;
+            vertical-align: middle;
+        }
+        .badge-anulado {
+            background-color: #6c757d;
+        }
+        .badge-correccion {
+            background-color: var(--color-boton-editar-fondo);
+            color: #333;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+        }
+
+        .chart-card {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 45vh;
+            width: 100%;
+        }
+
+        /* Hacemos que la cuadrícula sea de una sola columna en pantallas pequeñas */
+        @media (max-width: 992px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-links" style="display: flex; align-items: center;">
+            <a href="{{ url_for('index') }}" class="nav-logo">
+                <img src="{{ url_for('static', filename='images/logo_uls.png') }}" alt="Logo ULS">
+            </a>
+            <a href="{{ url_for('index') }}">Inicio</a>
+            {% if current_user.is_authenticated and current_user.rol in ['admin', 'profesional', 'ingreso'] %}
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            {% endif %}
+            {% if current_user.is_authenticated %}
+                {% if current_user.rol == 'admin' or current_user.rol == 'ingreso' %}
+                    <a href="{{ url_for('nuevo_estudiante') }}">Nuevo Estudiante</a>
+                {% endif %}
+                {% if current_user.rol == 'admin' %}
+                    <a href="{{ url_for('admin_listar_usuarios') }}">Administrar Usuarios</a>
+                {% endif %}
+            {% endif %}
+        </div>
+        <div class="nav-user" style="display: flex; align-items: center; gap: 10px;">
+            {% if current_user.is_authenticated %}
+                <span style="margin-right: 5px;">
+                    Hola, {{ current_user.nombre_completo if current_user.nombre_completo else current_user.username }}
+                    {% if current_user.rol %}({{ current_user.rol }}){% endif %}
+                </span>
+                <a href="{{ url_for('cambiar_password') }}" class="button button-secondary" style="padding: 8px 12px; font-size: 0.9em;">Cambiar Contraseña</a>
+                <a href="{{ url_for('logout') }}" class="button button-danger">Cerrar Sesión</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="button button-success">Iniciar Sesión</a>
+            {% endif %}
+        </div>
+    </nav> <div class="container">
+         <div class="app-title-header">
+            <h2>Registro y Seguimiento Estudiantes Ingresados al Programa de Acompañamiento y Seguimiento <span class="app-title-acronym">(PAS)</span></h2>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category | default('info') }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <hr style="margin-bottom: 25px;">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

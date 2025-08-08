@@ -1,0 +1,18 @@
+# Entorno Virtual
+.venv/
+venv/
+
+# Archivos de Python Cache
+__pycache__/
+*.pyc
+
+# Base de datos local
+seguimiento.db
+
+# Archivos de Excel y CSV (Datos)
+*.xlsx
+*.csv
+
+# Carpeta de gráficos generados
+graficos_generados/
+reportes_visuales_generados/

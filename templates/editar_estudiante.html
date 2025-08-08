@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Estudiante: {{ estudiante.nombre }} {{ estudiante.apellido_paterno }}{% endblock %}
+
+{% block content %}
+    <h1>Editar Información del Estudiante</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category | default('info') }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if estudiante and form %}
+        <form method="POST" action="" novalidate>
+            {{ form.hidden_tag() }} {# Token de seguridad CSRF #}
+
+            <fieldset>
+                <legend>Datos de Identificación</legend>
+                <div class="form-group">
+                    <label>RUT:</label>
+                    <input type="text" value="{{ estudiante.rut }}" readonly class="readonly-field">
+                    <small>El RUT no se puede modificar.</small>
+                </div>
+                <div class="form-group">
+                    {{ form.nombre.label }}
+                    {{ form.nombre(class="form-control") }}
+                    {% for error in form.nombre.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.apellido_paterno.label }}
+                    {{ form.apellido_paterno(class="form-control") }}
+                    {% for error in form.apellido_paterno.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.apellido_materno.label }}
+                    {{ form.apellido_materno(class="form-control") }}
+                    {% for error in form.apellido_materno.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.genero.label }}
+                    {{ form.genero(class="form-control") }}
+                    {% for error in form.genero.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Antecedentes Personales</legend>
+                <div class="form-group">
+                    {{ form.fecha_nacimiento.label }}
+                    {{ form.fecha_nacimiento(class="form-control") }}
+                    {% for error in form.fecha_nacimiento.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.nacionalidad.label }}
+                    {{ form.nacionalidad(class="form-control") }}
+                    {% for error in form.nacionalidad.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.estado_civil.label }}
+                    {{ form.estado_civil(class="form-control") }}
+                    {% for error in form.estado_civil.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.tiene_hijos.label }}
+                    {{ form.tiene_hijos(class="form-control") }}
+                    {% for error in form.tiene_hijos.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.ocupacion_laboral.label }}
+                    {{ form.ocupacion_laboral(class="form-control") }}
+                    {% for error in form.ocupacion_laboral.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.residencia_academica.label }}
+                    {{ form.residencia_academica(class="form-control") }}
+                    {% for error in form.residencia_academica.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.residencia_familiar.label }}
+                    {{ form.residencia_familiar(class="form-control") }}
+                    {% for error in form.residencia_familiar.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.celular.label }}
+                    {{ form.celular(class="form-control") }}
+                    {% for error in form.celular.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Red de Apoyo / Contacto de Emergencia</legend>
+                <div class="form-group">
+                    {{ form.nombre_contacto_emergencia.label }}
+                    {{ form.nombre_contacto_emergencia(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.parentesco_contacto_emergencia.label }}
+                    {{ form.parentesco_contacto_emergencia(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.telefono_contacto_emergencia.label }}
+                    {{ form.telefono_contacto_emergencia(class="form-control") }}
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Antecedentes Académicos y del Programa</legend>
+                <div class="form-group">
+                    {{ form.carrera_programa.label }}
+                    {{ form.carrera_programa(class="form-control") }}
+                    {% for error in form.carrera_programa.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.estado_academico.label }}
+                    {{ form.estado_academico(class="form-control") }}
+                    {% for error in form.estado_academico.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.beneficio_arancel.label }}
+                    {{ form.beneficio_arancel(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.trabajadora_social.label }}
+                    {{ form.trabajadora_social(class="form-control") }}
+                    {% for error in form.trabajadora_social.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.psicologo.label }}
+                    {{ form.psicologo(class="form-control") }}
+                    {% for error in form.psicologo.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.fecha_ingreso.label }}
+                    {{ form.fecha_ingreso(class="form-control") }}
+                    {% for error in form.fecha_ingreso.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.fuente_derivacion.label }}
+                    {{ form.fuente_derivacion(class="form-control") }}
+                    {% for error in form.fuente_derivacion.errors %}<p style="color: red;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.estado_programa.label }}
+                    {{ form.estado_programa(class="form-control") }}
+                    {% for error in form.estado_programa.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Información de Derivación CESFAM</legend>
+                <div class="form-group">
+                    {{ form.fecha_derivacion.label }}
+                    {{ form.fecha_derivacion(class="form-control") }}
+                    {% for error in form.fecha_derivacion.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.cesfam.label }}
+                    {{ form.cesfam(class="form-control") }}
+                    {% for error in form.cesfam.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.tentativa_ideacion.label }}
+                    {{ form.tentativa_ideacion(class="form-control") }}
+                    {% for error in form.tentativa_ideacion.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Gestión de la Derivación (Estado Maestro)</legend>
+                <div class="form-group">
+                    {{ form.estado_derivacion_maestro.label }}
+                    {{ form.estado_derivacion_maestro(class="form-control") }}
+                    <small>Este es el estado permanente de la derivación. Modificar con cuidado solo si es necesario corregir un error.</small>
+                </div>
+            </fieldset>
+
+             <fieldset>
+                <legend>Consentimientos</legend>
+                <div class="form-group">
+                    {{ form.autoriza_investigacion(class="form-check-input") }}
+                    {{ form.autoriza_investigacion.label(class="form-check-label") }}
+                </div>
+            </fieldset>
+
+            <div class="form-group" style="margin-top: 20px; display: flex; gap: 10px;">
+                {{ form.submit(class="button button-primary") }}
+                <a href="{{ url_for('detalle_estudiante', rut_estudiante=estudiante.rut) }}" class="button button-secondary">Cancelar</a>
+            </div>
+        </form>
+    {% else %}
+        <p class="alert alert-danger">No se pudo cargar la información del estudiante para editar.</p>
+        <a href="{{ url_for('index') }}" class="button button-primary">Volver al Listado</a>
+    {% endif %}
+{% endblock %}
