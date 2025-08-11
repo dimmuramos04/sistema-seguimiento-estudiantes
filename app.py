@@ -20,7 +20,7 @@ from database import (
     LISTA_TIPO_INTERVENCION, LISTA_RESULTADO_CITA, LISTA_FUENTE_DERIVACION, LISTA_BENEFICIO_ARANCEL
 )
 
-load_dotenv() # Esta es la línea que faltaba
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
