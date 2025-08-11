@@ -26,7 +26,7 @@ Para acceder, usar: usuario admin, contraseña 5114501-Maxi.
 * Estructura del Proyecto
 1. app.py: Contiene la lógica principal de la aplicación y las rutas.
 2. database.py: Define el esquema de la base de datos y la carga inicial de datos.
-3. fronted.py: Define los formularios web
+3. forms.py: Define los formularios web
 4. /templates: Contiene todas las plantillas HTML
 
 * Autor
