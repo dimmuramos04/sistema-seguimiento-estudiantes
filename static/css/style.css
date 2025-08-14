@@ -1,0 +1,565 @@
+/* --- :root - VARIABLES GLOBALES DE CSS --- */
+/* Aquí se definen los colores y valores que se usarán en toda la web. */
+/* Si necesitas cambiar un color corporativo, solo lo cambias aquí y se actualizará en todos lados. */
+:root {
+    /* Colores Corporativos ULS */
+    --color-uls-azul: #003082;
+    --color-uls-rojo: #CF142B;
+    --color-texto-nav: #FFFFFF;
+
+    /* Colores base de la aplicación */
+    --color-fondo-claro: #f4f4f4; /* Color de fondo general para el body */
+    --color-texto-principal: #333; /* Color de texto principal (párrafos, etc.) */
+
+    /* Variables para los botones, para mantener consistencia */
+    --color-boton-primario-fondo: var(--color-uls-azul);
+    --color-boton-primario-texto: #FFFFFF;
+    --color-boton-secundario-fondo: #6c757d;  /* Gris oscuro */
+    --color-boton-secundario-texto: #FFFFFF;
+    --color-boton-peligro-fondo: var(--color-uls-rojo);
+    --color-boton-peligro-texto: #FFFFFF;
+    --color-boton-exito-fondo: #28a745;     /* Verde */
+    --color-boton-exito-texto: #FFFFFF;
+    --color-boton-editar-fondo: #ffc107;   /* Amarillo */
+    --color-boton-editar-texto: #212529;
+}
+
+/* --- ESTILOS GENERALES DEL BODY Y LA TIPOGRAFÍA --- */
+body {
+    font-family: 'Museo Sans', sans-serif; /* Fuente principal de la aplicación */
+    margin: 0; /* Elimina el margen por defecto del navegador */
+    background-color: var(--color-fondo-claro); /* Usa el color de fondo definido en :root */
+    color: var(--color-texto-principal); /* Usa el color de texto principal */
+}
+
+/* --- ESTILOS DE LA BARRA DE NAVEGACIÓN (NAV) --- */
+nav {
+    display: flex; /* Activa Flexbox para alinear los elementos */
+    justify-content: space-between; /* Pone el máximo espacio entre los hijos (logo/links a la izquierda, usuario a la derecha) */
+    align-items: center; /* Centra verticalmente los elementos */
+    background-color: var(--color-uls-azul); /* Color de fondo del nav */
+    padding: 10px 20px; /* Espaciado interno (arriba/abajo y a los lados) */
+    color: var(--color-texto-nav); /* Color del texto dentro del nav */
+}
+nav a {
+    color: var(--color-texto-nav); /* Color de los enlaces */
+    margin-right: 15px; /* Margen a la derecha de cada enlace */
+    text-decoration: none; /* Quita el subrayado por defecto */
+    font-weight: bold; /* Texto en negrita */
+}
+/* Efecto al pasar el mouse sobre los enlaces del nav */
+nav .nav-links a:hover, nav .nav-user a.button:hover {
+    text-decoration: underline; /* Añade un subrayado al pasar el mouse */
+}
+nav .nav-logo img {
+    height: 40px; /* Altura del logo */
+    margin-right: 15px;
+}
+nav .nav-user span {
+    margin-right: 15px; /* Espacio para el saludo "Hola, ..." */
+}
+/* Asegura que el último elemento no tenga margen extra */
+nav div:last-child a:last-child {
+    margin-right: 0;
+}
+
+/* --- CONTENEDOR PRINCIPAL --- */
+/* Es la caja blanca donde va todo el contenido de cada página */
+.container {
+    background-color: white;
+    padding: 20px; /* Espaciado interno */
+    box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Sombra suave para darle profundidad */
+    margin: 20px; /* Margen exterior para separarlo de los bordes */
+}
+
+/* Estilo para los títulos principales */
+h1, h2 {
+    color: var(--color-texto-principal);
+}
+
+/* --- ESTILOS PARA LAS TABLAS --- */
+table {
+    width: 100%; /* La tabla ocupa todo el ancho disponible */
+    border-collapse: collapse; /* Las celdas comparten bordes */
+    margin-top: 20px;
+    table-layout: auto;
+    border: 1px solid #ddd; /* Borde exterior de la tabla */
+}
+
+/* Estilo para el encabezado de la tabla (thead) */
+thead {
+    display: table-header-group;
+    background-color: #f0f0f0; /* Fondo gris claro */
+}
+
+/* Estilo para el cuerpo de la tabla (tbody) */
+tbody {
+    display: table-row-group;
+}
+
+/* Estilo para las filas (tr) */
+tr {
+    display: table-row;
+    border-bottom: 1px solid #ddd; /* Línea divisoria entre filas */
+}
+tr:last-child {
+    border-bottom: none; /* La última fila no necesita línea abajo */
+}
+
+/* Estilo para celdas de encabezado (th) y celdas de datos (td) */
+th, td {
+    border: 1px solid #ddd; /* Borde para cada celda */
+    padding: 8px; /* Espaciado interno */
+    text-align: left; /* Alineación del texto */
+    display: table-cell;
+    vertical-align: middle; /* Alineación vertical */
+}
+
+/* Estilo específico para las celdas de encabezado (th) */
+th {
+    background-color: #f0f0f0; /* Fondo gris claro */
+    font-weight: bold; /* Texto en negrita */
+}
+
+
+/* --- ESTILOS PARA FORMULARIOS --- */
+/* Contenedor para cada campo del formulario (label + input) */
+.form-group {
+    margin-bottom: 15px; /* Espacio entre cada campo */
+}
+/* Estilos para los campos de texto, select, textarea, etc. */
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea {
+    width: 100%; /* Ocupan todo el ancho disponible */
+    max-width: 100%;
+    box-sizing: border-box; /* El padding no aumenta el ancho total */
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px; /* Bordes redondeados */
+    font-family: inherit; /* Usa la misma fuente que el resto del body */
+    font-size: 1em;
+    resize: vertical; /* Permite redimensionar verticalmente los textarea */
+    overflow-wrap: break-word; /* Evita que el texto se desborde */
+}
+
+/* --- ESTILOS PARA BOTONES --- */
+/* Estilo base y común para todos los botones */
+.button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    text-decoration: none;
+    display: inline-block;
+    color: white;
+}
+/* Estilo para el botón primario (azul) */
+.button-primary { background-color: var(--color-boton-primario-fondo); color: var(--color-boton-primario-texto); }
+.button-primary:hover { background-color: color-mix(in srgb, var(--color-boton-primario-fondo) 80%, black); } /* Se oscurece al pasar el mouse */
+
+/* Estilo para el botón de peligro (rojo) */
+.button-danger { background-color: var(--color-boton-peligro-fondo); color: var(--color-boton-peligro-texto); }
+.button-danger:hover { background-color: color-mix(in srgb, var(--color-boton-peligro-fondo) 80%, black); }
+
+/* Estilo para el botón de éxito (verde) */
+.button-success { background-color: var(--color-boton-exito-fondo); color: var(--color-boton-exito-texto); }
+.button-success:hover { background-color: color-mix(in srgb, var(--color-boton-exito-fondo) 80%, black); }
+
+/* Estilo para el botón secundario (gris) */
+.button-secondary { background-color: var(--color-boton-secundario-fondo); color: var(--color-boton-secundario-texto); }
+.button-secondary:hover { background-color: color-mix(in srgb, var(--color-boton-secundario-fondo) 80%, black); }
+
+/* Estilo para el botón de editar (amarillo) */
+.button-edit { background-color: var(--color-boton-editar-fondo); color: var(--color-boton-editar-texto); }
+.button-edit:hover { background-color: color-mix(in srgb, var(--color-boton-editar-fondo) 80%, black); }
+
+/* Estilo para el botón de advertencia (naranja) */
+.button-warning { background-color: orange; color: black; }
+.button-warning:hover { background-color: darkorange; }
+
+/* --- CLASES DE UTILIDAD --- */
+/* Para campos de solo lectura */
+.readonly-field { background-color: #e9ecef; cursor: not-allowed; }
+
+/* Para colorear los estados de los estudiantes */
+.status-activo { color: green; font-weight: bold; }
+.status-desertó { color: orange; font-weight: bold; }
+
+/* Estilos para las alertas (mensajes flash) */
+.alert { padding: 10px; margin-bottom: 15px; border: 1px solid transparent; border-radius: 4px; color: #fff; }
+.alert-danger { background-color: var(--color-uls-rojo); }
+.alert-success { background-color: var(--color-boton-exito-fondo); }
+.alert-info { background-color: #17a2b8; }
+.alert-warning { background-color: #ffc107; color: #212529; }
+
+
+/* --- DISEÑO RESPONSIVE PARA MÓVILES --- */
+/* Estos estilos se aplican solo en pantallas con un ancho máximo de 768px (tablets y móviles) */
+@media screen and (max-width: 768px) {
+    /* Oculta el encabezado de la tabla tradicional */
+    table thead {
+        border: none;
+        clip: rect(0 0 0 0);
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        position: absolute;
+        width: 1px;
+    }
+    /* Convierte las celdas en bloques y las alinea a la derecha */
+    table td {
+        display: block;
+        text-align: right;
+        font-size: 0.9em;
+        border-bottom: 1px dotted #ccc;
+        padding-left: 50%;
+        position: relative;
+    }
+    /* Convierte las filas en bloques (tarjetas) */
+    table tr {
+        display: block;
+        margin-bottom: 1em;
+        border-bottom: 5px solid var(--color-uls-azul);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    table td:last-child {
+        border-bottom: 0;
+    }
+    /* Usa el atributo 'data-label' para mostrar el nombre de la columna a la izquierda */
+    table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: bold;
+        color: var(--color-uls-azul);
+    }
+    /* Apila los elementos del formulario de búsqueda en vez de ponerlos en línea */
+    .search-form > div {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-form .form-group {
+        width: 100%;
+    }
+}
+
+/* --- COMPONENTES ESPECÍFICOS DE LA PÁGINA DE INICIO --- */
+/* Contenedor para las tarjetas de estadísticas */
+.stats-container {
+    display: flex;
+    flex-wrap: wrap; /* Permite que las tarjetas pasen a la siguiente línea si no caben */
+    gap: 20px; /* Espacio entre las tarjetas */
+    margin-bottom: 30px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 20px;
+}
+/* Estilo de cada tarjeta de estadística */
+.stat-card {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-left: 5px solid var(--color-uls-azul); /* Borde de color a la izquierda */
+    border-radius: 8px;
+    padding: 20px;
+    flex-grow: 1; /* Permite que las tarjetas crezcan para ocupar el espacio disponible */
+    min-width: 180px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease-in-out; /* Animación suave */
+}
+.stat-card:hover {
+    transform: translateY(-5px); /* Se eleva un poco al pasar el mouse */
+}
+.stat-number {
+    font-size: 3em;
+    font-weight: 700;
+    color: var(--color-uls-azul);
+    line-height: 1;
+}
+.stat-label {
+    font-size: 1em;
+    color: #6c757d;
+    margin-top: 5px;
+}
+.stat-year {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #343a40;
+    margin-top: 10px;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    padding: 3px 8px;
+    display: inline-block;
+}
+
+/* --- COMPONENTES ESPECÍFICOS DE LA PÁGINA DE LOGIN --- */
+.login-box {
+    max-width: 450px;
+    margin: 40px auto; /* Centra la caja horizontalmente */
+    background-color: #ffffff;
+    padding: 35px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+    border-top: 5px solid var(--color-uls-azul); /* Borde superior de color */
+}
+.login-box h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: var(--color-uls-azul);
+}
+.login-box .form-group {
+    margin-bottom: 22px;
+}
+.login-box label {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 8px;
+}
+.login-box input[type="text"],
+.login-box input[type="password"] {
+    padding: 12px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+.login-box input[type="text"]:focus,
+.login-box input[type="password"]:focus {
+    border-color: var(--color-uls-azul);
+    box-shadow: 0 0 8px rgba(0, 48, 130, 0.2);
+    outline: none;
+}
+.login-box .button-primary {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1em;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: background-color 0.3s;
+}
+.login-box .button-primary:hover {
+    background-color: var(--color-uls-rojo) !important; /* Cambia a rojo al pasar el mouse */
+}
+
+/* --- TÍTULO PRINCIPAL DE LA APLICACIÓN (DENTRO DEL CONTAINER) --- */
+.app-title-header {
+    text-align: center;
+    padding: 10px 0;
+    margin-bottom: 15px;
+}
+.app-title-header h2 {
+    font-family: 'Museo Sans', sans-serif;
+    font-weight: 500;
+    font-size: 1.7em;
+    color: var(--color-uls-azul);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
+    padding: 0;
+}
+.app-title-acronym {
+    color: var(--color-uls-rojo);
+    font-weight: 700;
+}
+
+/* --- ESTILOS PARA LA PÁGINA DE DETALLES DEL ESTUDIANTE --- */
+/* Estilo para mostrar el texto de la bitácora pre-formateado */
+pre.bitacora-text {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 15px;
+    font-size: 0.95em;
+    line-height: 1.6;
+    white-space: pre-wrap; /* Mantiene los saltos de línea y espacios */
+    overflow-wrap: break-word; /* Rompe palabras largas para que no se desborde */
+}
+
+/* Contenedor para agrupar campos en formularios (como una caja) */
+fieldset {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+/* Título del fieldset */
+legend {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--color-uls-azul);
+    padding: 0 10px;
+    margin-left: 10px;
+}
+
+/* Caja de detalles (Datos Personales, Información Académica, etc.) */
+.details-box {
+    background-color: #fdfdfd;
+    border: 1px solid #e0e0e0;
+    border-left: 5px solid var(--color-uls-azul);
+    border-radius: 8px;
+    padding: 20px 25px;
+    margin-bottom: 30px;
+}
+.details-box p {
+    margin: 10px 0;
+    line-height: 1.6;
+    font-size: 1.05em;
+}
+.details-box p strong {
+    color: #333;
+}
+.details-box h2 {
+    color: var(--color-uls-azul);
+    font-size: 1.3em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+/* Barra de herramientas para botones de acción (Editar, Nuevo Seguimiento, etc.) */
+.action-toolbar {
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Cada entrada de seguimiento en el historial */
+.seguimiento-entry {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.seguimiento-entry h4 {
+    margin-top: 0;
+    color: var(--color-uls-azul);
+}
+/* Estilo para un seguimiento que fue corregido (anulado) */
+.seguimiento-anulado {
+    opacity: 0.6; /* Se ve más transparente */
+    background-color: #f8f9fa;
+    border-left: 5px solid #6c757d;
+}
+.seguimiento-anulado h4 {
+    text-decoration: line-through; /* Tacha el título */
+}
+
+/* Estilo para el seguimiento que es la corrección */
+.seguimiento-correccion {
+    border-left: 5px solid var(--color-boton-editar-fondo); /* Borde amarillo */
+}
+
+/* Pequeñas etiquetas para "ANULADO" y "CORRECCIÓN" */
+.badge-anulado, .badge-correccion {
+    font-size: 0.7em;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 10px;
+    color: white;
+    margin-left: 15px;
+    vertical-align: middle;
+}
+.badge-anulado {
+    background-color: #6c757d; /* Gris */
+}
+.badge-correccion {
+    background-color: var(--color-boton-editar-fondo); /* Amarillo */
+    color: #333;
+}
+
+/* --- ESTILOS PARA EL DASHBOARD --- */
+/* Cuadrícula para los gráficos */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Dos columnas de igual tamaño */
+    gap: 25px;
+}
+/* Tarjeta que contiene cada gráfico */
+.chart-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+/* Contenedor del canvas del gráfico, para controlar su tamaño */
+.chart-container {
+    position: relative;
+    height: 45vh; /* Altura del 45% de la ventana de visualización */
+    width: 100%;
+}
+/* En pantallas pequeñas, la cuadrícula pasa a ser de una sola columna */
+@media (max-width: 992px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- CLASES DE ESTILO SIMILARES A BOOTSTRAP --- */
+/* Pequeñas clases de utilidad para márgenes, tarjetas, etc. */
+.mt-4 { margin-top: 1.5rem !important; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: .25rem;
+}
+.card-body {
+    flex: 1 1 auto;
+    padding: 1rem 1rem;
+}
+.shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important;
+}
+.form-label {
+    display: inline-block;
+    margin-bottom: .5rem;
+}
+.fw-bold {
+    font-weight: 700!important;
+}
+.form-control {
+    display: block;
+    width: 100%;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.form-control:focus {
+    color: #212529;
+    background-color: #fff;
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+}

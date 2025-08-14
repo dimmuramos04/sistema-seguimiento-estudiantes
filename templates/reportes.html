@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes Interactivos{% endblock %}
+
+{% block content %}
+    <h1>Reportes Interactivos</h1>
+    <p>Seleccione un rango de fechas para generar un reporte de ingresos al programa.</p>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="form-group" style="display: flex; gap: 20px; align-items: flex-end;">
+                <div>
+                    <label for="fecha_inicio" class="form-label fw-bold">Fecha de Inicio:</label>
+                    <input type="date" id="fecha_inicio" class="form-control">
+                </div>
+                <div>
+                    <label for="fecha_fin" class="form-label fw-bold">Fecha de Fin:</label>
+                    <input type="date" id="fecha_fin" class="form-control">
+                </div>
+                <div>
+                    <label for="agrupar_por" class="form-label fw-bold">Agrupar por:</label>
+                    <select id="agrupar_por" class="form-control">
+                        <option value="motivo_ingreso" selected>Evaluación de Riesgo (Ingreso)</option>
+                        <option value="genero">Género</option>
+                        <option value="estado_academico">Estado Académico</option>
+                        <option value="carrera_programa">Carrera / Programa</option>
+                        <option value="nacionalidad">Nacionalidad</option>
+                    </select>
+                </div>
+                <button id="generar_reporte_btn" class="button button-primary">Generar Reporte</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="chart-container">
+            <canvas id="reporteGrafico"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('reporteGrafico');
+            let miGrafico; // Variable para guardar la instancia del gráfico
+
+            // Función para dibujar el gráfico. Ahora con un título inicial simple.
+            function dibujarGrafico(labels, data) {
+                if (miGrafico) {
+                    miGrafico.destroy();
+                }
+                miGrafico = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total de Ingresos',
+                            data: data,
+                            backgroundColor: ['#003082', '#CF142B', '#0055a5', '#FFC107', '#28A745', '#6C757D'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                // El título ahora es una simple instrucción inicial.
+                                text: 'Seleccione un rango de fechas y agrupe los datos para generar un reporte'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Evento que se dispara al hacer clic en el botón
+            document.getElementById('generar_reporte_btn').addEventListener('click', function () {
+                const fechaInicio = document.getElementById('fecha_inicio').value;
+                const fechaFin = document.getElementById('fecha_fin').value;
+                const agruparPor = document.getElementById('agrupar_por').value;
+
+                if (!fechaInicio || !fechaFin) {
+                    alert('Por favor, seleccione una fecha de inicio y una de fin.');
+                    return;
+                }
+
+                // Llamamos a nuestra API
+                fetch(`/api/reporte_periodos?inicio=${fechaInicio}&fin=${fechaFin}&agrupar_por=${agruparPor}`)
+                    .then(response => response.json())
+                    .then(datos => {
+                        if (datos.error) {
+                            alert('Error: ' + datos.error);
+                        } else {
+                            // AQUÍ es donde se actualiza el título y los datos dinámicamente
+                            const tituloGrafico = document.getElementById('agrupar_por').selectedOptions[0].text;
+                            miGrafico.options.plugins.title.text = `Reporte por ${tituloGrafico} (desde ${fechaInicio} hasta ${fechaFin})`;
+            
+                            miGrafico.data.labels = datos.labels;
+                            miGrafico.data.datasets[0].data = datos.data;
+                            miGrafico.update(); // Redibujamos el gráfico
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al llamar a la API:', error);
+                        alert('Ocurrió un error de conexión al generar el reporte.');
+                    });
+            });
+
+            // Dibujamos el gráfico vacío inicial con el mensaje de instrucción
+            dibujarGrafico([], []);
+        });
+    </script>
+{% endblock %}

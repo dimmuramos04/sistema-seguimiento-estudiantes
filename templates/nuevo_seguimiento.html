@@ -73,6 +73,15 @@
         </fieldset>
 
         <fieldset>
+            <legend>Nota Rápida / Alerta Permanente</legend>
+            <div class="form-group">
+                {{ form.nota_importante.label }}
+                {{ form.nota_importante(class="form-control", rows=3, placeholder="Escriba aquí una nota o alerta que deba ser visible permanentemente en la ficha del estudiante...") }}
+                <small>Esta nota es la misma que aparece destacada en la ficha principal. Cualquier cambio aquí la actualizará. Para borrarla, deje el campo vacío.</small>
+            </div>
+        </fieldset>
+
+        <fieldset>
             <legend>Bitácora de la Sesión</legend>
             <div class="form-group">
                 {{ form.bitacora_sesion.label }}

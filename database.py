@@ -9,6 +9,16 @@ import numpy as np
 # --- Constantes para las Listas Desplegables ---
 # (Las listas de constantes permanecen sin cambios)
 LISTA_GENERO = ["Femenino", "Masculino", "No binario", "Otro", "Prefiero no indicar", "No registrado"]
+LISTA_SEXO = ["Femenino", "Masculino", "Intersexual", "No registrado"]
+LISTA_FACULTADES = [
+    "Facultad de Ciencias",
+    "Facultad de Ciencias Sociales, Empresariales y Jurídicas",
+    "Facultad de Humanidades",
+    "Facultad de Ingeniería",
+    "Programa de Postgrado y Postítulo",
+    "Otro",
+    "No registrado"
+]
 LISTA_CARRERAS = [
     "Administración Pública", "Administración Turística", "Arquitectura", "Auditoría", "Derecho", "Diseño",
     "Diseño Mención Comunicación/Equipamiento", "Diplomado en Desarrollo y Gestión de Intervención en el Espacio Público",
@@ -222,6 +232,18 @@ def init_db():
         FOREIGN KEY (rut_estudiante) REFERENCES Estudiantes (rut)
     )''')
     print("Tabla Seguimientos (SQLite) verificada/creada.")
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS PeriodosAtencion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rut_estudiante TEXT NOT NULL,
+        fecha_ingreso TEXT NOT NULL,
+        motivo_ingreso TEXT NOT NULL, -- 'Ideación' o 'Tentativa'
+        estado_periodo TEXT NOT NULL, -- 'Activo', 'Activo (Reingreso)', 'Alta', 'Archivado', etc.
+        fecha_alta TEXT,
+        FOREIGN KEY (rut_estudiante) REFERENCES Estudiantes (rut)
+    )
+    ''')
 
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS Usuarios (

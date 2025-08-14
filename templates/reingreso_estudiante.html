@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Reingreso{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Registrar Reingreso para {{ estudiante['nombre'] }} {{ estudiante['apellido_paterno'] }}</h2>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <p>A continuación, se muestra la información académica más reciente del estudiante. Si ha cambiado (ej: pasó a postgrado), por favor actualícela.</p>
+            <hr>
+            <form method="POST" action="{{ url_for('reingreso_estudiante', rut_estudiante=rut) }}">
+                {{ form.hidden_tag() }}
+                
+                <div class="mb-3">
+                    {{ form.fecha_reingreso.label(class="form-label fw-bold") }}
+                    {{ form.fecha_reingreso(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.motivo_reingreso.label(class="form-label fw-bold") }}
+                    {{ form.motivo_reingreso(class="form-control") }}
+                </div>
+
+                <hr>
+                <h4 class="mb-3">Fotografía Académica al Momento del Reingreso</h4>
+
+                <div class="mb-3">
+                    {{ form.carrera.label(class="form-label fw-bold") }}
+                    {{ form.carrera(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.facultad.label(class="form-label fw-bold") }}
+                    {{ form.facultad(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.estado_academico.label(class="form-label fw-bold") }}
+                    {{ form.estado_academico(class="form-control") }}
+                </div>
+                <div style="margin-top: 20px;">
+                    {{ form.submit(class="button button-primary") }}
+                    <a href="{{ url_for('detalle_estudiante', rut_estudiante=rut) }}" class="button button-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

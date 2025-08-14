@@ -18,8 +18,17 @@
             {% set puede_agregar_seguimiento = True %}
         {% endif %}
 
+        {% set puede_agregar_reingreso = current_user.rol in ['admin', 'ingreso'] and estudiante_estado_actual.strip().lower() not in ['activo', 'activo (reingreso)'] %}
+
 
         <h1>Ficha del Estudiante</h1>
+
+        {% if estudiante.nota_importante %}
+            <div class="alert alert-warning" role="alert" style="border: 1px solid #ffc107; padding: 15px; margin-bottom: 25px; border-radius: 8px;">
+                <h4 style="margin-top: 0; color: #856404;">Nota Rápida / Alerta</h4>
+                <p style="margin-bottom: 0;">{{ estudiante.nota_importante }}</p>
+            </div>
+        {% endif %}
 
         <div class="action-toolbar">
             {% if puede_editar_estudiante %}
@@ -27,6 +36,16 @@
             {% endif %}
             {% if puede_agregar_seguimiento %}
                 <a href="{{ url_for('nuevo_seguimiento', rut_estudiante=estudiante.rut) }}" class="button button-primary">Agregar Nuevo Seguimiento</a>
+            {% endif %}
+            {% if puede_agregar_reingreso %}
+                <a href="{{ url_for('reingreso_estudiante', rut_estudiante=estudiante.rut) }}" class="button button-warning">Registrar Reingreso</a>
+            {% endif %}
+            {% if current_user.rol == 'admin' %}
+                <form method="POST" action="{{ url_for('eliminar_estudiante', rut_estudiante=estudiante.rut) }}" 
+                    onsubmit="return confirm('¿Estás ABSOLUTAMENTE SEGURO? Esta acción es irreversible y eliminará al estudiante, todos sus seguimientos y todo su historial de forma permanente.');"
+                    style="margin: 0;">
+                    <input type="submit" value="Eliminar Estudiante (Peligro)" class="button button-danger">
+                </form>
             {% endif %}
         </div>
 
@@ -36,6 +55,8 @@
             <p><strong>RUT:</strong> {{ estudiante.rut }}</p>
             <p><strong>Nombre Completo:</strong> {{ estudiante.nombre }} {{ estudiante.apellido_paterno }} {{ estudiante.apellido_materno }}</p>
             <p><strong>Edad:</strong> {{ edad if edad else 'No registrada' }} años</p>
+            <p><strong>Sexo:</strong> {{ estudiante.sexo if estudiante.sexo else 'No registrado' }}</p>
+            <p><strong>Género:</strong> {{ estudiante.genero if estudiante.genero else 'No registrado' }}</p>
             <p><strong>Nacionalidad:</strong> {{ estudiante.nacionalidad if estudiante.nacionalidad else 'No registrada' }}</p>
             <p><strong>Estado Civil:</strong> {{ estudiante.estado_civil if estudiante.estado_civil else 'No registrado' }}</p>
             <p><strong>Hijos/as:</strong> {{ estudiante.tiene_hijos if estudiante.tiene_hijos else 'No registrado' }}</p>
@@ -48,13 +69,14 @@
         <div class="details-box">
             <h2>Información Académica y del Programa</h2>
             <hr>
-            <p><strong>Carrera/Programa:</strong> {{ estudiante.carrera_programa }}</p>
-            <p><strong>Estado Académico:</strong> {{ estudiante.estado_academico if estudiante.estado_academico else 'No registrado' }}</p>
+            <p><strong>Carrera/Programa:</strong> {{ ultimo_periodo.carrera_periodo if ultimo_periodo else estudiante.carrera_programa }}</p>
+            <p><strong>Facultad:</strong> {{ ultimo_periodo.facultad_periodo if ultimo_periodo else estudiante.facultad }}</p>
+            <p><strong>Estado Académico:</strong> {{ ultimo_periodo.estado_academico_periodo if ultimo_periodo else estudiante.estado_academico }}</p>
             <p><strong>Beneficio de Arancel:</strong> {{ estudiante.beneficio_arancel if estudiante.beneficio_arancel else 'No registrado' }}</p>
             <p><strong>Fecha Ingreso al Programa:</strong> {{ estudiante.fecha_ingreso_programa }}</p>
             <p><strong>Fuente de Derivación:</strong> {{ estudiante.fuente_derivacion if estudiante.fuente_derivacion else 'No registrada' }}</p>
-            <p><strong>Estado en Programa:</strong> <span class="status-{{ estudiante.estado_en_programa | lower | replace(' ', '-') }}">{{ estudiante.estado_en_programa }}</span></p>
-            
+            <p><strong>Estado en Programa:</strong> {{ ultimo_periodo.estado_periodo if ultimo_periodo else 'No definido' }}</span></p>
+
             {% if fecha_ultima_extension %}
                 <p style="color:var(--color-uls-rojo); font-weight: bold;">Extensión del programa otorgada el: {{ fecha_ultima_extension }}</p>
             {% endif %}

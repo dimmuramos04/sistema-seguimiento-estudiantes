@@ -41,8 +41,14 @@
                     <td data-label="Nombre Completo">{{ usuario_item.nombre_completo if usuario_item.nombre_completo else '-' }}</td>
                     <td data-label="Rol">{{ usuario_item.rol }}</td>
                     <td data-label="Activo">{% if usuario_item.activo == 1 %}Sí{% else %}No{% endif %}</td>
-                    <td data-label="Acciones">
+                    <td data-label="Acciones" style="display: flex; flex-direction: row; align-items: center; gap: 5px;">
                         <a href="{{ url_for('editar_usuario', id_usuario=usuario_item.id) }}" class="button button-edit" style="padding: 5px 10px; font-size: 0.9em;">Editar</a>
+                        {# Solo mostrar el botón si el usuario NO es el admin actual #}
+                        {% if usuario_item.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('eliminar_usuario', id_usuario=usuario_item.id) }}" onsubmit="return confirm('¿Estás seguro de que quieres eliminar a este usuario? Esta acción no se puede deshacer.');">
+                                <input type="submit" value="Eliminar" class="button button-danger" style="padding: 5px 10px; font-size: 0.9em;">
+                            </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

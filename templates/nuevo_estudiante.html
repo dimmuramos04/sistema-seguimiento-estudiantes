@@ -31,6 +31,11 @@
             {% for error in form.apellido_materno.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
         </div>
         <div class="form-group">
+            {{ form.sexo.label }}
+            {{ form.sexo(class="form-control") }}
+            {% for error in form.sexo.errors %}<p style="color: red;">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="form-group">
             {{ form.genero.label }}
             {{ form.genero(class="form-control") }}
             {% for error in form.genero.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
@@ -74,7 +79,7 @@
             {{ form.residencia_familiar(class="form-control") }}
             {% for error in form.residencia_familiar.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
         </div>
-         <div class="form-group">
+        <div class="form-group">
             {{ form.celular.label }}
             {{ form.celular(class="form-control") }}
             {% for error in form.celular.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
@@ -103,7 +108,12 @@
             {{ form.carrera_programa(class="form-control") }}
             {% for error in form.carrera_programa.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
         </div>
-         <div class="form-group">
+        <div class="form-group">
+            {{ form.facultad.label }}
+            {{ form.facultad(class="form-control") }}
+            {% for error in form.facultad.errors %}<p style="color: red;">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="form-group">
             {{ form.estado_academico.label }}
             {{ form.estado_academico(class="form-control") }}
             {% for error in form.estado_academico.errors %}<p style="color: red; font-size: 0.9em;">{{ error }}</p>{% endfor %}
@@ -154,6 +164,15 @@
         </div>
     </fieldset>
 
+    <fieldset>
+
+        <legend>Nota Rápida / Alerta</legend>
+        <div class="form-group">
+            {{ form.nota_importante.label }}
+            {{ form.nota_importante(class="form-control", rows=4, placeholder="Escriba aquí una nota importante o alerta que deba ser visible para todos los profesionales...") }}
+            <small>Esta nota aparecerá destacada en la ficha del estudiante. Es opcional.</small>
+        </div>
+    </fieldset>
     <fieldset>
         <legend>Consentimientos</legend>
         <div class="form-group">

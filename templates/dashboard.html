@@ -21,7 +21,7 @@
         </div>
 
         <div class="chart-card">
-            <div class="chart-container">
+            <div class="chart-container" style="grid-column: 1 / -1;">
                 <canvas id="graficoSeguimientos"></canvas>
             </div>
         </div>
@@ -37,125 +37,121 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
+        // Este evento se asegura de que el script se ejecute solo cuando toda la página HTML se ha cargado.
         document.addEventListener('DOMContentLoaded', function () {
 
-            // --- Configuración Gráfico 1: Estudiantes por Estado (Torta) ---
+            // --- Gráfico 1: Estudiantes por Estado (Torta) ---
             const ctxEstados = document.getElementById('graficoEstados');
-            new Chart(ctxEstados, {
-                type: 'pie',
-                data: {
-                    labels: {{ labels_estados | safe }},
-                    datasets: [{
-                        label: 'Nº de Estudiantes',
-                        data: {{ data_estados | safe }},
-                        backgroundColor: [
-                            '#003082', // Azul ULS
-                            '#CF142B', // Rojo ULS
-                            '#0055a5', // Azul más claro
-                            '#e74c3c', // Rojo más claro
-                            '#7f8c8d', // Gris neutro
-                            '#3498db'  // Otro azul
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: { display: true, text: 'Distribución de Estudiantes por Estado' }
-                    }
-                }
-            });
-
-            // --- Configuración Gráfico 2: Top 10 Carreras (Barras) ---
-            const ctxCarreras = document.getElementById('graficoCarreras');
-            new Chart(ctxCarreras, {
-                type: 'bar',
-                data: {
-                    labels: {{ labels_carreras | safe }},
-                    datasets: [{
-                        label: 'Nº de Estudiantes',
-                        data: {{ data_carreras | safe }},
-                        backgroundColor: '#003082', // Azul ULS
-                        borderColor: '#003082',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        title: { display: true, text: 'Top 10 Carreras con más Estudiantes' }
-                    }
-                }
-            });
-
-            // --- Configuración Gráfico 3: Seguimientos por Mes (Líneas) ---
-            const ctxSeguimientos = document.getElementById('graficoSeguimientos');
-            new Chart(ctxSeguimientos, {
-                type: 'line',
-                data: {
-                    labels: {{ labels_seguimientos | safe }},
-                    datasets: [{
-                        label: 'Nº de Seguimientos',
-                        data: {{ data_seguimientos | safe }},
-                        fill: false,
-                        borderColor: '#003082', // Azul ULS
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        title: { display: true, text: 'Evolución de Seguimientos por Mes' }
-                    }
-                }
-            });
-
-            // --- Configuración Gráfico 4: Ideación vs Tentativa por Año (Barras Agrupadas) ---
-            const ctxIdeacionAnio = document.getElementById('graficoIdeacionAnio');
-            new Chart(ctxIdeacionAnio, {
-                type: 'bar',
-                data: {
-                    labels: {{ labels_ideacion_anio | safe }},
-                    datasets: [
-                        {
-                            label: 'Ideación',
-                            data: {{ data_ideacion | safe }},
-                            backgroundColor: '#CF142B', // Rojo ULS
-                            borderColor: '#CF142B',
+            if (ctxEstados) { // Verificamos que el elemento exista antes de usarlo
+                new Chart(ctxEstados, {
+                    type: 'pie',
+                    data: {
+                        labels: {{ labels_estados | safe }},
+                        datasets: [{
+                            label: 'Nº de Estudiantes',
+                            data: {{ data_estados | safe }},
+                            backgroundColor: ['#003082', '#CF142B', '#0055a5', '#e74c3c', '#7f8c8d', '#3498db'],
                             borderWidth: 1
-                        },
-                        {
-                            label: 'Tentativa',
-                            data: {{ data_tentativa | safe }},
-                            backgroundColor: '#003082', // Azul ULS
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: true, text: 'Distribución de Estudiantes por Estado' }
+                        }
+                    }
+                });
+            }
+
+            // --- Gráfico 2: Top 10 Carreras (Barras Horizontales) ---
+            const ctxCarreras = document.getElementById('graficoCarreras');
+            if (ctxCarreras) {
+                new Chart(ctxCarreras, {
+                    type: 'bar',
+                    data: {
+                        labels: {{ labels_carreras | safe }},
+                        datasets: [{
+                            label: 'Nº de Estudiantes',
+                            data: {{ data_carreras | safe }},
+                            backgroundColor: '#003082',
                             borderColor: '#003082',
                             borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: { display: true, text: 'Ingresos con Ideación vs Tentativa por Año' }
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
+                    options: {
+                        indexAxis: 'y', // <-- Esto hace que las barras sean horizontales
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: 'Top 10 Carreras con más Estudiantes' }
                         }
                     }
-                }
-            });
+                });
+            }
 
-        // --- AÑADIMOS ESTA LÍNEA DE CIERRE ---
+            // --- Gráfico 3: Seguimientos por Mes (Líneas) ---
+            const ctxSeguimientos = document.getElementById('graficoSeguimientos');
+            if (ctxSeguimientos) {
+                new Chart(ctxSeguimientos, {
+                    type: 'line',
+                    data: {
+                        labels: {{ labels_seguimientos | safe }},
+                        datasets: [{
+                            label: 'Nº de Seguimientos',
+                            data: {{ data_seguimientos | safe }},
+                            fill: false,
+                            borderColor: '#003082',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: 'Evolución de Seguimientos por Mes' }
+                        }
+                    }
+                });
+            }
+
+            // --- Gráfico 4: Ideación vs Tentativa por Año (Barras Agrupadas) ---
+            const ctxIdeacionAnio = document.getElementById('graficoIdeacionAnio');
+            if (ctxIdeacionAnio) {
+                new Chart(ctxIdeacionAnio, {
+                    type: 'bar',
+                    data: {
+                        labels: {{ labels_ideacion_anio | safe }},
+                        datasets: [
+                            {
+                                label: 'Ideación',
+                                data: {{ data_ideacion | safe }},
+                                backgroundColor: '#CF142B', // Rojo ULS
+                            },
+                            {
+                                label: 'Tentativa',
+                                data: {{ data_tentativa | safe }},
+                                backgroundColor: '#003082', // Azul ULS
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: true, text: 'Ingresos con Ideación vs Tentativa por Año' }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 } // Asegura que el eje Y vaya de 1 en 1
+                            }
+                        }
+                    }
+                });
+            }
         });
     </script>
 {% endblock %}

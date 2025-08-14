@@ -3,10 +3,11 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, Response, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from forms import LoginForm, NuevoEstudianteForm, CambiarPasswordForm, EditarEstudianteForm, NuevoSeguimientoForm, EditarSeguimientoForm
+from forms import LoginForm, NuevoEstudianteForm, CambiarPasswordForm, EditarEstudianteForm, NuevoSeguimientoForm, EditarSeguimientoForm, ReingresoForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import date, datetime
+from flask import jsonify
 import sqlite3
 import io
 import csv
@@ -17,7 +18,7 @@ from database import (
     LISTA_PSICOLOGOS, LISTA_CESFAM, LISTA_TENTATIVA_IDEACION, LISTA_ESTADO_PROGRAMA,
     LISTA_ESTADO_DERIVACION_INICIAL, LISTA_ASISTENCIA_CONTROLES_CESFAM,
     LISTA_ESTADO_ACADEMICO, LISTA_ESTADO_CIVIL, LISTA_OCUPACION_LABORAL,LISTA_TIENE_HIJOS, LISTA_NACIONALIDADES,
-    LISTA_TIPO_INTERVENCION, LISTA_RESULTADO_CITA, LISTA_FUENTE_DERIVACION, LISTA_BENEFICIO_ARANCEL
+    LISTA_TIPO_INTERVENCION, LISTA_RESULTADO_CITA, LISTA_FUENTE_DERIVACION, LISTA_BENEFICIO_ARANCEL, LISTA_SEXO, LISTA_FACULTADES
 )
 
 load_dotenv()
@@ -94,34 +95,34 @@ def index():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # --- PASO 1: Obtener estadísticas GLOBALES primero ---
-        # Esta consulta se ejecuta siempre, para todos los roles, y no tiene filtros.
+        # --- PASO 1 y 2: Lógica de Alertas y Conteos ---
+        # Ambas consultas ahora deben obtener el estado MÁS RECIENTE desde PeriodosAtencion
+
+        # Consulta para conteo anual (ahora usa la nueva tabla)
         query_conteo = """
             SELECT
-                strftime('%Y', fecha_ingreso_programa) as anio_ingreso,
-                COUNT(*) as cantidad_activos
-            FROM
-                Estudiantes
-            WHERE
-                estado_en_programa IN ('Activo', 'Activo (Reingreso)')
-            GROUP BY
-                anio_ingreso
-            ORDER BY
-                anio_ingreso DESC;
+                strftime('%Y', pa.fecha_ingreso) as anio_ingreso,
+                COUNT(pa.rut_estudiante) as cantidad_activos
+            FROM PeriodosAtencion pa
+            WHERE pa.estado_periodo IN ('Activo', 'Activo (Reingreso)')
+            AND pa.id = (SELECT MAX(id) FROM PeriodosAtencion WHERE rut_estudiante = pa.rut_estudiante)
+            GROUP BY anio_ingreso
+            ORDER BY anio_ingreso DESC;
         """
         cursor.execute(query_conteo)
         conteo_activos_por_ano = cursor.fetchall()
 
-
-        # --- PASO 2: Obtener las alertas, aplicando el filtro por ROL ---
+        # Consulta para alertas 
         query_base_alertas = """
             SELECT
                 e.rut, e.nombre, e.apellido_paterno, e.apellido_materno,
                 MAX(s.fecha_sesion) as ultima_sesion,
                 CAST(julianday('now') - julianday(MAX(s.fecha_sesion)) AS INTEGER) as dias_sin_seguimiento
             FROM Estudiantes e
+            JOIN PeriodosAtencion pa ON e.rut = pa.rut_estudiante
             LEFT JOIN Seguimientos s ON e.rut = s.rut_estudiante
-            WHERE e.estado_en_programa LIKE 'Activo%'
+            WHERE pa.id = (SELECT MAX(id) FROM PeriodosAtencion WHERE rut_estudiante = e.rut)
+            AND pa.estado_periodo LIKE 'Activo%'
         """
         params_alertas = []
 
@@ -141,41 +142,55 @@ def index():
         estudiantes_con_alerta = cursor.fetchall()
 
 
-        # --- PASO 3: Obtener la lista de estudiantes, aplicando filtros de BÚSQUEDA y ROL ---
+        # --- PASO 3: Obtener la lista de estudiantes ---
         search_term = request.args.get('search_term', '').strip()
         filter_estado = request.args.get('filter_estado', '').strip()
         show_archived = request.args.get('show_archived') == 'true'
-
-        base_query = "SELECT rut, nombre, apellido_paterno, apellido_materno, carrera_programa, estado_en_programa FROM Estudiantes"
+        
+        # Esta es la consulta base correcta que une las tablas
+        base_query = """
+            SELECT 
+                e.rut, e.nombre, e.apellido_paterno, e.apellido_materno, e.carrera_programa, pa.estado_periodo
+            FROM 
+                Estudiantes e
+            JOIN 
+                PeriodosAtencion pa ON e.rut = pa.rut_estudiante
+            WHERE 
+                pa.id = (SELECT MAX(id) FROM PeriodosAtencion WHERE rut_estudiante = e.rut)
+        """
+        
         conditions = []
         params = []
 
         if current_user.rol == 'profesional':
             if current_user.nombre_completo:
-                conditions.append("(trabajadora_social_asignada = ? OR psicologo_asignado = ?)")
+                conditions.append("(e.trabajadora_social_asignada = ? OR e.psicologo_asignado = ?)")
                 params.extend([current_user.nombre_completo, current_user.nombre_completo])
             else:
                 conditions.append("1 = 0")
 
         if search_term:
-            conditions.append("(lower(rut) LIKE ? OR lower(nombre) LIKE ? OR lower(apellido_paterno) LIKE ? OR lower(apellido_materno) LIKE ?)")
+            conditions.append("(lower(e.rut) LIKE ? OR lower(e.nombre) LIKE ? OR lower(e.apellido_paterno) LIKE ? OR lower(e.apellido_materno) LIKE ?)")
             params.extend([f"%{search_term.lower()}%"] * 4)
-
+        
+        # Tu lógica de filtro de estado está perfecta
         if filter_estado:
-            conditions.append("LOWER(TRIM(estado_en_programa)) = ?")
+            conditions.append("LOWER(TRIM(pa.estado_periodo)) = ?")
             params.append(filter_estado.lower())
         elif not show_archived:
-            conditions.append("LOWER(TRIM(estado_en_programa)) != ?")
+            conditions.append("LOWER(TRIM(pa.estado_periodo)) != ?")
             params.append("archivado")
 
         final_query = base_query
         if conditions:
-            final_query += " WHERE " + " AND ".join(conditions)
-        final_query += " ORDER BY apellido_paterno, apellido_materno, nombre"
-
+            # Se usa AND porque la consulta base ya tiene un WHERE
+            final_query += " AND " + " AND ".join(conditions)
+        
+        final_query += " ORDER BY e.apellido_paterno, e.apellido_materno, e.nombre"
+        
         cursor.execute(final_query, tuple(params))
         estudiantes = cursor.fetchall()
-
+        
         return render_template('index.html',
                                estudiantes=estudiantes,
                                conteo_anual=conteo_activos_por_ano,
@@ -193,23 +208,22 @@ def index():
     finally:
         if conn: conn.close()
 
-
-
 @app.route('/estudiante/nuevo', methods=['GET', 'POST'])
 @login_required
 @roles_required('admin', 'ingreso')
 def nuevo_estudiante():
     form = NuevoEstudianteForm()
 
+    # --- Toda tu lógica para llenar los menús desplegables se mantiene intacta ---
+    form.sexo.choices = [('', 'Seleccione...')] + [(s, s) for s in LISTA_SEXO]
     form.genero.choices = [('', 'Seleccione...')] + [(g, g) for g in LISTA_GENERO]
     form.carrera_programa.choices = [('', 'Seleccione...')] + [(c, c) for c in LISTA_CARRERAS]
+    form.facultad.choices = [('', 'Seleccione...')] + [(f, f) for f in LISTA_FACULTADES]
     form.trabajadora_social.choices = [('', 'Seleccione...')] + [(ts, ts) for ts in LISTA_TRABAJADORAS_SOCIALES]
     form.psicologo.choices = [('', 'Seleccione...')] + [(p, p) for p in LISTA_PSICOLOGOS]
     form.nacionalidad.choices = [('', 'Seleccione...')] + [(n, n) for n in LISTA_NACIONALIDADES]
-
     opciones_estado_inicial = [e for e in LISTA_ESTADO_PROGRAMA if e in ["Activo", "No acepta ingresar", "En evaluación inicial"]]
     form.estado_programa.choices = [(e, e) for e in opciones_estado_inicial]
-
     lista_cesfam_para_formulario = [c for c in LISTA_CESFAM if c.upper() != "NINGUNO"]
     form.cesfam.choices = [('', 'Seleccione CESFAM...')] + [(c, c) for c in lista_cesfam_para_formulario]
     form.tentativa_ideacion.choices = [('', 'Seleccione...')] + [(ti, ti) for ti in LISTA_TENTATIVA_IDEACION]
@@ -231,25 +245,39 @@ def nuevo_estudiante():
             if cursor.fetchone():
                 form.rut.errors.append(f"El RUT '{rut_ingresado}' ya se encuentra registrado.")
             else:
+                # --- PASO 1: Insertar en la tabla Estudiantes ---
                 cursor.execute('''
-                    INSERT INTO Estudiantes (rut, nombre, apellido_paterno, apellido_materno, genero,
+                    INSERT INTO Estudiantes (rut, nombre, apellido_paterno, apellido_materno, sexo, genero,
                     fecha_nacimiento, nacionalidad, estado_civil, tiene_hijos,
-                    carrera_programa, estado_academico, ocupacion_laboral,
+                    carrera_programa, facultad, estado_academico, ocupacion_laboral,
                     residencia_academica, residencia_familiar, celular,
                     trabajadora_social_asignada, psicologo_asignado, fecha_ingreso_programa,
                     fuente_derivacion, estado_en_programa, fecha_derivacion_cesfam, cesfam_derivacion,
                     tentativa_ideacion, fecha_autorizacion_investigacion, nombre_contacto_emergencia,
-                    parentesco_contacto_emergencia, telefono_contacto_emergencia)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (form.rut.data, form.nombre.data, form.apellido_paterno.data, form.apellido_materno.data, form.genero.data,
+                    parentesco_contacto_emergencia, telefono_contacto_emergencia, nota_importante)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (form.rut.data, form.nombre.data, form.apellido_paterno.data, form.apellido_materno.data, form.sexo.data, form.genero.data,
                     form.fecha_nacimiento.data, form.nacionalidad.data, form.estado_civil.data, form.tiene_hijos.data,
-                    form.carrera_programa.data, form.estado_academico.data, form.ocupacion_laboral.data,
+                    form.carrera_programa.data, form.facultad.data, form.estado_academico.data, form.ocupacion_laboral.data,
                     form.residencia_academica.data, form.residencia_familiar.data, form.celular.data,
                     form.trabajadora_social.data, form.psicologo.data, form.fecha_ingreso.data,
                     form.fuente_derivacion.data, form.estado_programa.data, form.fecha_derivacion.data, form.cesfam.data,
                     form.tentativa_ideacion.data, fecha_autorizacion_investigacion, form.nombre_contacto_emergencia.data,
-                    form.parentesco_contacto_emergencia.data, form.telefono_contacto_emergencia.data
+                    form.parentesco_contacto_emergencia.data, form.telefono_contacto_emergencia.data, form.nota_importante.data
                 ))
+                
+                # --- PASO 2: Crear el primer Período de Atención ---
+                # Después de guardar al estudiante, creamos su primer registro en la nueva tabla.
+                cursor.execute('''
+                    INSERT INTO PeriodosAtencion (rut_estudiante, fecha_ingreso, motivo_ingreso, estado_periodo)
+                    VALUES (?, ?, ?, ?)
+                ''', (
+                    form.rut.data,
+                    form.fecha_ingreso.data.strftime('%Y-%m-%d'), # Usamos la fecha de ingreso del formulario
+                    form.tentativa_ideacion.data,                 # Usamos el motivo de ingreso del formulario
+                    form.estado_programa.data                     # Usamos el estado inicial del formulario
+                ))
+
                 conn.commit()
                 flash(f'Estudiante {form.nombre.data} {form.apellido_paterno.data} registrado exitosamente.', 'success')
                 return redirect(url_for('index'))
@@ -272,6 +300,8 @@ def detalle_estudiante(rut_estudiante):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # 1. Mantenemos la consulta original para 'estudiante'.
         cursor.execute("SELECT * FROM Estudiantes WHERE rut = ?", (rut_estudiante,))
         estudiante = cursor.fetchone()
 
@@ -279,56 +309,22 @@ def detalle_estudiante(rut_estudiante):
             flash('Estudiante no encontrado.', 'danger')
             return redirect(url_for('index'))
 
-        # Lógica de permisos (sin cambios)
+        # 2. Obtenemos el último periodo de atención para los datos académicos más recientes.
+        ultimo_periodo = conn.execute("""
+            SELECT * FROM PeriodosAtencion 
+            WHERE rut_estudiante = ? 
+            ORDER BY fecha_ingreso DESC, id DESC LIMIT 1
+        """, (rut_estudiante,)).fetchone()
+
+        # --- Lógica de permisos se mantiene ---
         if current_user.rol == 'profesional':
             nombre_profesional_actual = current_user.nombre_completo
             if not (estudiante['trabajadora_social_asignada'] == nombre_profesional_actual or \
                     estudiante['psicologo_asignado'] == nombre_profesional_actual):
                 flash('No tienes permiso para ver los detalles de este estudiante.', 'danger')
                 return redirect(url_for('index'))
-        elif current_user.rol not in ['admin', 'ingreso']:
-            flash('No tienes permiso para ver los detalles de este estudiante.', 'danger')
-            return redirect(url_for('index'))
-
-        # --- INICIO DEL BLOQUE DE DIAGNÓSTICO ---
-        print("\n--- INICIANDO DIAGNÓSTICO DE ALTA ---")
-        print(f"RUT del estudiante: {rut_estudiante}")
-
-        # Imprimimos el valor exacto que viene de la base de datos
-        if estudiante['estado_en_programa']:
-            estado_crudo = estudiante['estado_en_programa']
-            print(f"1. Estado en Programa (crudo desde BD): '{estado_crudo}'")
-
-            # Imprimimos el valor después de limpiarlo
-            estado_limpio = estado_crudo.strip().lower()
-            print(f"2. Estado en Programa (limpio y en minúsculas): '{estado_limpio}'")
-
-            # Comprobamos la condición
-            condicion_cumplida = (estado_limpio == 'alta del programa')
-            print(f"3. ¿La condición se cumple?: {condicion_cumplida}")
-
-            if condicion_cumplida:
-                print("4. La condición se cumplió. Procediendo a buscar el seguimiento...")
-                cursor.execute("""
-                    SELECT * FROM Seguimientos
-                    WHERE rut_estudiante = ? AND (alta_mejora_animo = 1 OR alta_disminucion_riesgo = 1 OR alta_redes_apoyo = 1 OR alta_adherencia_tratamiento = 1 OR alta_no_registrado = 1)
-                    ORDER BY fecha_sesion DESC, id_seguimiento DESC
-                    LIMIT 1
-                """, (rut_estudiante,))
-                seguimiento_alta = cursor.fetchone()
-                if seguimiento_alta:
-                    print(f"5. ¡ÉXITO! Se encontró el seguimiento de alta con ID: {seguimiento_alta['id_seguimiento']}")
-                else:
-                    print("5. ADVERTENCIA: No se encontró un seguimiento que cumpla los criterios de alta.")
-            else:
-                print("4. La condición NO se cumplió. No se buscará el seguimiento de alta.")
-        else:
-            print("1. El campo 'estado_en_programa' está vacío en la base de datos.")
-
-        print("--- FIN DEL DIAGNÓSTICO ---\n")
-        # --- FIN DEL BLOQUE DE DIAGNÓSTICO ---
-
-        # Cálculo de edad (sin cambios)
+        
+        # --- Lógica de cálculo de edad ---
         if estudiante and estudiante['fecha_nacimiento']:
             try:
                 fecha_nac = datetime.strptime(estudiante['fecha_nacimiento'], '%Y-%m-%d').date()
@@ -336,8 +332,18 @@ def detalle_estudiante(rut_estudiante):
                 edad_estudiante = hoy.year - fecha_nac.year - ((hoy.month, hoy.day) < (fecha_nac.month, fecha_nac.day))
             except (ValueError, TypeError):
                 edad_estudiante = "Fecha inválida"
+        
+        # Usamos el estado del último periodo para la lógica de alta
+        estado_actual = ultimo_periodo['estado_periodo'] if ultimo_periodo else 'No definido'
+        if estado_actual.strip().lower() == 'alta del programa':
+             cursor.execute("""
+                SELECT * FROM Seguimientos
+                WHERE rut_estudiante = ? AND (alta_mejora_animo = 1 OR alta_disminucion_riesgo = 1 OR alta_redes_apoyo = 1 OR alta_adherencia_tratamiento = 1 OR alta_no_registrado = 1)
+                ORDER BY fecha_sesion DESC, id_seguimiento DESC
+                LIMIT 1
+            """, (rut_estudiante,))
+             seguimiento_alta = cursor.fetchone()
 
-        # El resto de la función permanece exactamente igual...
         query_seguimientos = """
             SELECT s.*, (EXISTS (SELECT 1 FROM Seguimientos s2 WHERE s2.corrige_id_seguimiento = s.id_seguimiento) OR (s.es_correccion = 1 AND EXISTS (SELECT 1 FROM Seguimientos s2 WHERE s2.es_correccion = 1 AND s2.corrige_id_seguimiento = s.corrige_id_seguimiento AND s2.id_seguimiento > s.id_seguimiento))) as fue_corregido
             FROM Seguimientos s
@@ -347,15 +353,18 @@ def detalle_estudiante(rut_estudiante):
         seguimientos = conn.execute(query_seguimientos, (rut_estudiante,)).fetchall()
 
         historial = conn.execute("SELECT * FROM HistorialCambios WHERE id_registro_afectado = ? AND modelo_afectado = 'Estudiante' ORDER BY fecha_cambio DESC", (rut_estudiante,)).fetchall()
+        
         ultima_extension = conn.execute("SELECT MAX(extension_programa_otorgada) as fecha_extension FROM Seguimientos WHERE rut_estudiante = ?", (rut_estudiante,)).fetchone()
 
         return render_template('detalle_estudiante.html',
                                estudiante=estudiante,
+                               ultimo_periodo=ultimo_periodo, # <-- Pasamos la nueva variable a la plantilla
                                seguimientos=seguimientos,
                                historial=historial,
                                edad=edad_estudiante,
                                fecha_ultima_extension=ultima_extension['fecha_extension'],
-                               seguimiento_alta=seguimiento_alta)
+                               seguimiento_alta=seguimiento_alta,
+                               estudiante_estado_actual=estado_actual)
 
     except Exception as e:
         print(f"EXCEPCIÓN en detalle_estudiante: {e}")
@@ -441,8 +450,15 @@ def nuevo_seguimiento(rut_estudiante):
                     form.alta_no_registrado.data, fecha_ext, form.es_correccion.data, corrige_id
                 ))
 
+                nueva_nota = form.nota_importante.data
+                # Comparamos la nota del formulario con la de la base de datos
+                if nueva_nota != estudiante['nota_importante']:
+                    # Si son diferentes, actualizamos la tabla Estudiantes
+                    cursor.execute('UPDATE Estudiantes SET nota_importante = ? WHERE rut = ?', 
+                                   (nueva_nota, rut_estudiante))
+
                 if valor_cambio_programa:
-                    cursor.execute('UPDATE Estudiantes SET estado_en_programa = ? WHERE rut = ?', (valor_cambio_programa, rut_estudiante))
+                    cursor.execute('UPDATE PeriodosAtencion SET estado_periodo = ? WHERE id = (SELECT MAX(id) FROM PeriodosAtencion WHERE rut_estudiante = ?)', (valor_cambio_programa, rut_estudiante))
                 if valor_cambio_academico:
                     cursor.execute('UPDATE Estudiantes SET estado_academico = ? WHERE rut = ?', (valor_cambio_academico, rut_estudiante))
                 if form.beneficio_arancel.data:
@@ -462,6 +478,7 @@ def nuevo_seguimiento(rut_estudiante):
         if request.method == 'GET':
             form.trabajadora_social_sesion.data = estudiante['trabajadora_social_asignada']
             form.psicologo_sesion.data = estudiante['psicologo_asignado']
+            form.nota_importante.data = estudiante['nota_importante']
 
         return render_template('nuevo_seguimiento.html',
                                form=form,
@@ -476,6 +493,65 @@ def nuevo_seguimiento(rut_estudiante):
     finally:
         if conn:
             conn.close()
+
+@app.route('/estudiante/<rut_estudiante>/reingreso', methods=['GET', 'POST'])
+@login_required
+@roles_required('admin', 'ingreso')
+def reingreso_estudiante(rut_estudiante):
+    form = ReingresoForm()
+    # Rellenamos los menús desplegables
+    form.carrera.choices = [('', 'Seleccione...')] + [(c, c) for c in LISTA_CARRERAS]
+    form.facultad.choices = [('', 'Seleccione...')] + [(f, f) for f in LISTA_FACULTADES]
+    form.estado_academico.choices = [('', 'Seleccione...')] + [(e, e) for e in LISTA_ESTADO_ACADEMICO]
+
+    conn = get_db_connection()
+    # Obtenemos los datos actuales para pre-rellenar el formulario
+    estudiante_actual = conn.execute('SELECT * FROM Estudiantes WHERE rut = ?', (rut_estudiante,)).fetchone()
+    conn.close()
+
+    if not estudiante_actual:
+        flash("Estudiante no encontrado.", "danger")
+        return redirect(url_for('index'))
+
+    if form.validate_on_submit():
+        conn = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Creamos el nuevo período de atención con la "fotografía" académica
+            cursor.execute('''
+                INSERT INTO PeriodosAtencion (
+                    rut_estudiante, fecha_ingreso, motivo_ingreso, estado_periodo,
+                    carrera_periodo, facultad_periodo, estado_academico_periodo
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                rut_estudiante, 
+                form.fecha_reingreso.data.strftime('%Y-%m-%d'), 
+                form.motivo_reingreso.data, 
+                'Activo (Reingreso)',
+                form.carrera.data,
+                form.facultad.data,
+                form.estado_academico.data
+            ))
+            
+            conn.commit()
+            flash('¡Reingreso registrado exitosamente!', 'success')
+            return redirect(url_for('detalle_estudiante', rut_estudiante=rut_estudiante))
+        except sqlite3.Error as e:
+            if conn: conn.rollback()
+            flash(f"Error de base de datos al registrar el reingreso: {e}", "danger")
+        finally:
+            if conn: conn.close()
+    
+    # Si es la primera vez que se carga la página, pre-rellenamos con los datos actuales
+    elif request.method == 'GET':
+        form.carrera.data = estudiante_actual['carrera_programa']
+        form.facultad.data = estudiante_actual['facultad']
+        form.estado_academico.data = estudiante_actual['estado_academico']
+            
+    return render_template('reingreso_estudiante.html', form=form, rut=rut_estudiante, estudiante=estudiante_actual)
 
 @app.route('/estudiante/<rut_estudiante>/editar', methods=['GET', 'POST'])
 @login_required
@@ -500,8 +576,10 @@ def editar_estudiante(rut_estudiante):
 
     form = EditarEstudianteForm()
 
+    form.sexo.choices = [(s, s) for s in LISTA_SEXO]
     form.genero.choices = [(g, g) for g in LISTA_GENERO]
     form.carrera_programa.choices = [(c, c) for c in LISTA_CARRERAS]
+    form.facultad.choices = [(f, f) for f in LISTA_FACULTADES]
     form.trabajadora_social.choices = [(ts, ts) for ts in LISTA_TRABAJADORAS_SOCIALES]
     form.psicologo.choices = [(p, p) for p in LISTA_PSICOLOGOS]
     form.estado_programa.choices = [(e, e) for e in LISTA_ESTADO_PROGRAMA]
@@ -517,8 +595,8 @@ def editar_estudiante(rut_estudiante):
     if form.validate_on_submit():
         conn_post = None
         try:
-            nombres_amigables = { 'nombre': 'Nombre', 'apellido_paterno': 'Apellido Paterno', 'apellido_materno': 'Apellido Materno', 'genero': 'Género', 'fecha_nacimiento': 'Fecha de Nacimiento', 'nacionalidad': 'Nacionalidad', 'estado_civil': 'Estado Civil', 'tiene_hijos': 'Tiene Hijos/as', 'ocupacion_laboral': 'Ocupación Laboral', 'residencia_academica': 'Residencia Académica', 'residencia_familiar': 'Residencia Familiar', 'celular': 'Celular', 'carrera_programa': 'Carrera/Programa', 'estado_academico': 'Estado Académico', 'fecha_ingreso_programa': 'Fecha de Ingreso al Programa', 'fuente_derivacion': 'Fuente de Derivación', 'estado_en_programa': 'Estado en Programa', 'trabajadora_social_asignada': 'Trabajadora Social', 'psicologo_asignado': 'Psicólogo/a', 'fecha_derivacion_cesfam': 'Fecha Derivación CESFAM', 'cesfam_derivacion': 'CESFAM de Derivación', 'tentativa_ideacion': 'Tentativa o Ideación (al ingreso)', 'fecha_autorizacion_investigacion': 'Autorización para Investigación', 'beneficio_arancel': 'Beneficio de Arancel', 'estado_derivacion_maestro': 'Estado de Derivación' }
-            campos_a_mapear = { 'nombre': 'nombre', 'apellido_paterno': 'apellido_paterno', 'apellido_materno': 'apellido_materno', 'genero': 'genero', 'fecha_nacimiento': 'fecha_nacimiento', 'nacionalidad': 'nacionalidad', 'estado_civil': 'estado_civil', 'tiene_hijos': 'tiene_hijos', 'ocupacion_laboral': 'ocupacion_laboral', 'residencia_academica': 'residencia_academica', 'residencia_familiar': 'residencia_familiar', 'celular': 'celular', 'carrera_programa': 'carrera_programa', 'estado_academico': 'estado_academico', 'fecha_ingreso_programa': 'fecha_ingreso', 'fuente_derivacion': 'fuente_derivacion', 'estado_en_programa': 'estado_programa', 'trabajadora_social_asignada': 'trabajadora_social', 'psicologo_asignado': 'psicologo', 'fecha_derivacion_cesfam': 'fecha_derivacion', 'cesfam_derivacion': 'cesfam', 'tentativa_ideacion': 'tentativa_ideacion', 'beneficio_arancel': 'beneficio_arancel', 'estado_derivacion_maestro': 'estado_derivacion_maestro' }
+            nombres_amigables = { 'nombre': 'Nombre', 'apellido_paterno': 'Apellido Paterno', 'apellido_materno': 'Apellido Materno', 'sexo': 'Sexo', 'genero': 'Género', 'fecha_nacimiento': 'Fecha de Nacimiento', 'nacionalidad': 'Nacionalidad', 'estado_civil': 'Estado Civil', 'tiene_hijos': 'Tiene Hijos/as', 'ocupacion_laboral': 'Ocupación Laboral', 'residencia_academica': 'Residencia Académica', 'residencia_familiar': 'Residencia Familiar', 'celular': 'Celular', 'carrera_programa': 'Carrera/Programa', 'facultad': 'Facultad', 'estado_academico': 'Estado Académico', 'fecha_ingreso_programa': 'Fecha de Ingreso al Programa', 'fuente_derivacion': 'Fuente de Derivación', 'estado_en_programa': 'Estado en Programa', 'trabajadora_social_asignada': 'Trabajadora Social', 'psicologo_asignado': 'Psicólogo/a', 'fecha_derivacion_cesfam': 'Fecha Derivación CESFAM', 'cesfam_derivacion': 'CESFAM de Derivación', 'tentativa_ideacion': 'Tentativa o Ideación (al ingreso)', 'fecha_autorizacion_investigacion': 'Autorización para Investigación', 'beneficio_arancel': 'Beneficio de Arancel', 'estado_derivacion_maestro': 'Estado de Derivación', 'nota_importante': 'Nota Importante' }
+            campos_a_mapear = { 'nombre': 'nombre', 'apellido_paterno': 'apellido_paterno', 'apellido_materno': 'apellido_materno', 'sexo': 'sexo', 'genero': 'genero', 'fecha_nacimiento': 'fecha_nacimiento', 'nacionalidad': 'nacionalidad', 'estado_civil': 'estado_civil', 'tiene_hijos': 'tiene_hijos', 'ocupacion_laboral': 'ocupacion_laboral', 'residencia_academica': 'residencia_academica', 'residencia_familiar': 'residencia_familiar', 'celular': 'celular', 'carrera_programa': 'carrera_programa', 'facultad': 'facultad', 'estado_academico': 'estado_academico', 'fecha_ingreso_programa': 'fecha_ingreso', 'fuente_derivacion': 'fuente_derivacion', 'estado_en_programa': 'estado_programa', 'trabajadora_social_asignada': 'trabajadora_social', 'psicologo_asignado': 'psicologo', 'fecha_derivacion_cesfam': 'fecha_derivacion', 'cesfam_derivacion': 'cesfam', 'tentativa_ideacion': 'tentativa_ideacion', 'beneficio_arancel': 'beneficio_arancel', 'estado_derivacion_maestro': 'estado_derivacion_maestro', 'nota_importante': 'nota_importante' }
             detalles_cambios = []
             for columna_db, campo_form in campos_a_mapear.items():
                 valor_anterior = estudiante_obj[columna_db]
@@ -538,13 +616,13 @@ def editar_estudiante(rut_estudiante):
 
             cursor.execute('''
                 UPDATE Estudiantes SET
-                    nombre = ?, apellido_paterno = ?, apellido_materno = ?, genero = ?, fecha_nacimiento = ?, nacionalidad = ?, estado_civil = ?, tiene_hijos = ?,
-                    carrera_programa = ?, estado_academico = ?, ocupacion_laboral = ?, residencia_academica = ?, residencia_familiar = ?, celular = ?,
+                    nombre = ?, apellido_paterno = ?, apellido_materno = ?, sexo = ?, genero = ?, fecha_nacimiento = ?, nacionalidad = ?, estado_civil = ?, tiene_hijos = ?,
+                    carrera_programa = ?, facultad = ?, estado_academico = ?, ocupacion_laboral = ?, residencia_academica = ?, residencia_familiar = ?, celular = ?,
                     trabajadora_social_asignada = ?, psicologo_asignado = ?, fecha_ingreso_programa = ?, fuente_derivacion = ?, estado_en_programa = ?,
                     fecha_derivacion_cesfam = ?, cesfam_derivacion = ?, tentativa_ideacion = ?, fecha_autorizacion_investigacion = ?,
-                    nombre_contacto_emergencia = ?, parentesco_contacto_emergencia = ?, telefono_contacto_emergencia = ?, beneficio_arancel = ?, estado_derivacion_maestro = ?
+                    nombre_contacto_emergencia = ?, parentesco_contacto_emergencia = ?, telefono_contacto_emergencia = ?, beneficio_arancel = ?, estado_derivacion_maestro = ?, nota_importante = ?
                 WHERE rut = ?
-            ''', (form.nombre.data, form.apellido_paterno.data, form.apellido_materno.data, form.genero.data, form.fecha_nacimiento.data, form.nacionalidad.data, form.estado_civil.data, form.tiene_hijos.data, form.carrera_programa.data, form.estado_academico.data, form.ocupacion_laboral.data, form.residencia_academica.data, form.residencia_familiar.data, form.celular.data, form.trabajadora_social.data, form.psicologo.data, form.fecha_ingreso.data, form.fuente_derivacion.data, form.estado_programa.data, form.fecha_derivacion.data, form.cesfam.data, form.tentativa_ideacion.data, fecha_autorizacion_investigacion,form.nombre_contacto_emergencia.data, form.parentesco_contacto_emergencia.data, form.telefono_contacto_emergencia.data, form.beneficio_arancel.data, form.estado_derivacion_maestro.data, rut_estudiante))
+            ''', (form.nombre.data, form.apellido_paterno.data, form.apellido_materno.data, form.sexo.data, form.genero.data, form.fecha_nacimiento.data, form.nacionalidad.data, form.estado_civil.data, form.tiene_hijos.data, form.carrera_programa.data, form.facultad.data, form.estado_academico.data, form.ocupacion_laboral.data, form.residencia_academica.data, form.residencia_familiar.data, form.celular.data, form.trabajadora_social.data, form.psicologo.data, form.fecha_ingreso.data, form.fuente_derivacion.data, form.estado_programa.data, form.fecha_derivacion.data, form.cesfam.data, form.tentativa_ideacion.data, fecha_autorizacion_investigacion, form.nombre_contacto_emergencia.data, form.parentesco_contacto_emergencia.data, form.telefono_contacto_emergencia.data, form.beneficio_arancel.data, form.estado_derivacion_maestro.data, form.nota_importante.data, rut_estudiante))
             conn_post.commit()
             flash('Datos del estudiante actualizados exitosamente.', 'success')
             return redirect(url_for('detalle_estudiante', rut_estudiante=rut_estudiante))
@@ -559,11 +637,13 @@ def editar_estudiante(rut_estudiante):
         form.nombre.data = estudiante_obj['nombre']
         form.apellido_paterno.data = estudiante_obj['apellido_paterno']
         form.apellido_materno.data = estudiante_obj['apellido_materno']
+        form.sexo.data = estudiante_obj['sexo']
         form.genero.data = estudiante_obj['genero']
         form.nacionalidad.data = estudiante_obj['nacionalidad']
         form.estado_civil.data = estudiante_obj['estado_civil']
         form.tiene_hijos.data = estudiante_obj['tiene_hijos']
         form.carrera_programa.data = estudiante_obj['carrera_programa']
+        form.facultad.data = estudiante_obj['facultad']
         form.estado_academico.data = estudiante_obj['estado_academico']
         form.ocupacion_laboral.data = estudiante_obj['ocupacion_laboral']
         form.residencia_academica.data = estudiante_obj['residencia_academica']
@@ -584,8 +664,53 @@ def editar_estudiante(rut_estudiante):
         form.telefono_contacto_emergencia.data = estudiante_obj['telefono_contacto_emergencia']
         form.beneficio_arancel.data = estudiante_obj['beneficio_arancel']
         form.estado_derivacion_maestro.data = estudiante_obj['estado_derivacion_maestro']
+        form.nota_importante.data = estudiante_obj['nota_importante']
 
     return render_template('editar_estudiante.html', form=form, estudiante=estudiante_obj)
+
+# En app.py
+
+@app.route('/estudiante/<rut_estudiante>/eliminar', methods=['POST'])
+@login_required
+@admin_required
+def eliminar_estudiante(rut_estudiante):
+    """
+    Elimina un estudiante y TODOS sus registros asociados (seguimientos, periodos, historial).
+    Esta acción es irreversible y está restringida solo para administradores.
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Iniciamos una transacción. Si algo falla, se deshacen todos los cambios.
+        conn.execute('BEGIN')
+
+        # 1. Eliminar registros asociados para evitar errores de clave foránea
+        cursor.execute("DELETE FROM HistorialCambios WHERE id_registro_afectado = ?", (rut_estudiante,))
+        cursor.execute("DELETE FROM Seguimientos WHERE rut_estudiante = ?", (rut_estudiante,))
+        cursor.execute("DELETE FROM PeriodosAtencion WHERE rut_estudiante = ?", (rut_estudiante,))
+
+        # 2. Finalmente, eliminar al estudiante de la tabla principal
+        cursor.execute("DELETE FROM Estudiantes WHERE rut = ?", (rut_estudiante,))
+
+        # Si todo salió bien, confirmamos los cambios
+        conn.commit()
+        flash(f'El estudiante con RUT {rut_estudiante} y todos sus registros asociados han sido eliminados permanentemente.', 'success')
+
+    except sqlite3.Error as e:
+        # Si algo falló, revertimos todos los cambios
+        if conn:
+            conn.rollback()
+        print(f"Error al eliminar estudiante (RUT: {rut_estudiante}): {e}")
+        flash('Ocurrió un error de base de datos al intentar eliminar el estudiante.', 'danger')
+
+    finally:
+        if conn:
+            conn.close()
+            
+    # Redirigimos al listado principal de estudiantes
+    return redirect(url_for('index'))
 
 @app.route('/admin/usuarios')
 @login_required
@@ -653,6 +778,40 @@ def crear_usuario():
             if conn: conn.close()
         return render_template('crear_usuario.html', username=username, nombre_completo=nombre_completo, rol_seleccionado=rol, activo_check=(activo == 1), lista_roles=lista_de_roles_posibles)
     return render_template('crear_usuario.html', lista_roles=lista_de_roles_posibles)
+
+@app.route('/admin/usuarios/<int:id_usuario>/eliminar', methods=['POST'])
+@login_required
+@admin_required
+def eliminar_usuario(id_usuario):
+    # Medida de seguridad CRÍTICA: Impedir que un admin se elimine a sí mismo.
+    if id_usuario == current_user.id:
+        flash('No puedes eliminar tu propia cuenta de administrador.', 'danger')
+        return redirect(url_for('admin_listar_usuarios'))
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar que el usuario exista antes de intentar eliminarlo
+        cursor.execute("SELECT username FROM Usuarios WHERE id = ?", (id_usuario,))
+        usuario_a_eliminar = cursor.fetchone()
+
+        if usuario_a_eliminar:
+            cursor.execute("DELETE FROM Usuarios WHERE id = ?", (id_usuario,))
+            conn.commit()
+            flash(f'El usuario "{usuario_a_eliminar["username"]}" ha sido eliminado exitosamente.', 'success')
+        else:
+            flash('El usuario que intentas eliminar no existe.', 'warning')
+
+    except sqlite3.Error as e:
+        if conn: conn.rollback()
+        flash(f'Ocurrió un error de base de datos al intentar eliminar el usuario: {e}', 'danger')
+    finally:
+        if conn: conn.close()
+            
+    return redirect(url_for('admin_listar_usuarios'))
+
 
 @app.route('/admin/usuarios/<int:id_usuario>/editar', methods=['GET', 'POST'])
 @login_required
@@ -844,6 +1003,70 @@ def descargar_seguimientos_csv():
     finally:
         if conn: conn.close()
 
+# En app.py
+
+@app.route('/descargar/periodos_csv')
+@login_required
+@admin_required # Aseguramos que solo los admin puedan descargar
+def descargar_periodos_csv():
+    """
+    Exporta un CSV con todos los periodos de atención, uniendo los datos del estudiante.
+    Este es el informe ideal para análisis históricos y de cohortes.
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Esta consulta SQL une la tabla de Periodos con la de Estudiantes
+        # para tener toda la información en un solo lugar.
+        query = """
+            SELECT
+                pa.id as id_periodo,
+                pa.rut_estudiante,
+                e.nombre,
+                e.apellido_paterno,
+                e.apellido_materno,
+                pa.fecha_ingreso,
+                pa.motivo_ingreso,
+                pa.estado_periodo,
+                pa.fecha_alta
+            FROM PeriodosAtencion pa
+            JOIN Estudiantes e ON pa.rut_estudiante = e.rut
+            ORDER BY pa.rut_estudiante, pa.fecha_ingreso
+        """
+        cursor.execute(query)
+        lista_periodos = cursor.fetchall()
+        
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_ALL)
+
+        if lista_periodos:
+            # Escribimos los nombres de las columnas en el CSV
+            column_names = [description[0] for description in cursor.description]
+            writer.writerow(column_names)
+            # Escribimos cada fila de datos
+            for periodo_row in lista_periodos:
+                writer.writerow(periodo_row)
+        else:
+            writer.writerow(["No hay datos de periodos de atencion para descargar."])
+        
+        # Preparamos el archivo para la descarga
+        csv_data = output.getvalue().encode('utf-8-sig')
+        return Response(
+            csv_data,
+            mimetype="text/csv; charset=utf-8-sig",
+            headers={"Content-Disposition": "attachment;filename=informe_periodos_atencion.csv"}
+        )
+
+    except Exception as e:
+        print(f"Error al generar CSV de periodos de atencion: {e}")
+        flash("Ocurrió un error al generar el informe de periodos de atención.", "danger")
+        return redirect(url_for('index'))
+    finally:
+        if conn:
+            conn.close()
+
 @app.route('/seguimiento/<int:id_seguimiento>/eliminar', methods=['POST'])
 @login_required
 def eliminar_seguimiento(id_seguimiento):
@@ -968,6 +1191,17 @@ def dashboard():
         if conn:
             conn.close()
 
+
+@app.route('/reportes')
+@login_required
+@admin_required
+def reportes():
+    """
+    Renderiza la página de reportes interactivos.
+    Esta página contendrá el formulario para seleccionar fechas y el gráfico.
+    """
+    return render_template('reportes.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -1005,6 +1239,68 @@ def logout():
     logout_user()
     flash('Has cerrado sesión exitosamente.', 'info')
     return redirect(url_for('login'))
+
+@app.route('/api/reporte_periodos')
+@login_required
+@admin_required
+def api_reporte_periodos():
+    fecha_inicio = request.args.get('inicio')
+    fecha_fin = request.args.get('fin')
+    agrupar_por = request.args.get('agrupar_por', 'motivo_ingreso') # 'motivo_ingreso' es el valor por defecto
+
+    if not fecha_inicio or not fecha_fin:
+        return jsonify({'error': 'Se requieren fechas de inicio y fin'}), 400
+
+    # --- MEDIDA DE SEGURIDAD (MUY IMPORTANTE) ---
+    # Creamos una "lista blanca" de columnas permitidas para evitar inyección de SQL.
+    # Solo permitiremos agrupar por las columnas que definamos aquí.
+    columnas_permitidas = {
+        'motivo_ingreso': 'pa.motivo_ingreso',
+        'genero': 'e.genero',
+        'estado_academico': 'e.estado_academico',
+        'carrera_programa': 'e.carrera_programa',
+        'nacionalidad': 'e.nacionalidad'
+    }
+
+    if agrupar_por not in columnas_permitidas:
+        return jsonify({'error': 'Parámetro para agrupar no válido'}), 400
+
+    columna_sql = columnas_permitidas[agrupar_por]
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # La consulta ahora es dinámica. Usamos f-string de forma SEGURA 
+        # porque hemos validado 'columna_sql' contra nuestra lista blanca.
+        query = f"""
+            SELECT
+                {columna_sql} as dimension,
+                COUNT(pa.id) as total
+            FROM PeriodosAtencion pa
+            JOIN Estudiantes e ON pa.rut_estudiante = e.rut
+            WHERE pa.fecha_ingreso BETWEEN ? AND ?
+            GROUP BY dimension
+            ORDER BY total DESC
+        """
+        
+        cursor.execute(query, (fecha_inicio, fecha_fin))
+        datos_db = cursor.fetchall()
+
+        reporte_data = {
+            'labels': [row['dimension'] if row['dimension'] else 'No registrado' for row in datos_db],
+            'data': [row['total'] for row in datos_db]
+        }
+
+        return jsonify(reporte_data)
+
+    except Exception as e:
+        print(f"Error en la API de reportes: {e}")
+        return jsonify({'error': 'Ocurrió un error al procesar la solicitud'}), 500
+    finally:
+        if conn:
+            conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True)

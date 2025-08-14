@@ -3,7 +3,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField, TextAreaField, BooleanField
 from wtforms.validators import DataRequired, Optional, Length, EqualTo
-from database import LISTA_BENEFICIO_ARANCEL, LISTA_PARENTESCO, LISTA_ESTADO_DERIVACION_INICIAL, LISTA_ASISTENCIA_CONTROLES_CESFAM
+from database import LISTA_BENEFICIO_ARANCEL, LISTA_PARENTESCO, LISTA_ESTADO_DERIVACION_INICIAL, LISTA_ASISTENCIA_CONTROLES_CESFAM, LISTA_CARRERAS, LISTA_FACULTADES, LISTA_ESTADO_ACADEMICO
 
 class LoginForm(FlaskForm):
     """Formulario para el inicio de sesión de usuarios."""
@@ -38,6 +38,7 @@ class NuevoEstudianteForm(FlaskForm):
     # se las daremos desde la ruta en app.py, por eso aquí no las definimos.
     genero = SelectField('Género',
                          validators=[DataRequired(message="Debe seleccionar un género.")])
+    sexo = SelectField('Sexo', validators=[DataRequired(message="Debe seleccionar un sexo.")])
     fecha_nacimiento = DateField('Fecha de Nacimiento',
                                  validators=[DataRequired(message="La fecha de nacimiento es requerida.")])
 
@@ -60,6 +61,7 @@ class NuevoEstudianteForm(FlaskForm):
                                       validators=[DataRequired(message="La residencia familiar es requerida.")])
     carrera_programa = SelectField('Carrera/Programa',
                                    validators=[DataRequired(message="Debe seleccionar una carrera.")])
+    facultad = SelectField('Facultad o Programa de Postgrado', validators=[DataRequired(message="Debe seleccionar una Facultad o Programa de Postgrado.")])
 
     celular = StringField('Celular', validators=[Optional()])
 
@@ -88,6 +90,8 @@ class NuevoEstudianteForm(FlaskForm):
     nombre_contacto_emergencia = StringField('Nombre Contacto de Emergencia', validators=[Optional()])
     parentesco_contacto_emergencia = SelectField('Parentesco del Contacto', choices=[('', 'Seleccione...')] + [(p, p) for p in LISTA_PARENTESCO], validators=[Optional()])
     telefono_contacto_emergencia = StringField('Teléfono del Contacto', validators=[Optional()])
+
+    nota_importante = TextAreaField('Nota Rápida / Alerta (opcional)', validators=[Optional()])
 
     submit = SubmitField('Registrar Estudiante')
 
@@ -121,6 +125,7 @@ class EditarEstudianteForm(FlaskForm):
                                    validators=[DataRequired(message="El apellido paterno es obligatorio.")])
     apellido_materno = StringField('Apellido Materno',
                                    validators=[DataRequired(message="El apellido materno es obligatorio.")])
+    sexo = SelectField('Sexo', validators=[DataRequired(message="Debe seleccionar un sexo.")])
 
     genero = SelectField('Género',
                          validators=[DataRequired(message="Debe seleccionar un género.")])
@@ -148,6 +153,8 @@ class EditarEstudianteForm(FlaskForm):
 
     carrera_programa = SelectField('Carrera/Programa',
                                    validators=[DataRequired(message="Debe seleccionar una carrera.")])
+
+    facultad = SelectField('Facultad o Programa de Postgrado', validators=[DataRequired(message="Debe seleccionar una Facultad o Programa de Postgrado.")])
 
     celular = StringField('Celular', validators=[Optional()])
 
@@ -182,6 +189,8 @@ class EditarEstudianteForm(FlaskForm):
         validators=[Optional()]
     )
 
+    nota_importante = TextAreaField('Nota Rápida / Alerta Importante (Visible para todos los profesionales)', validators=[Optional()])
+
 
     submit = SubmitField('Guardar Cambios')
 
@@ -213,6 +222,7 @@ class NuevoSeguimientoForm(FlaskForm):
     nuevo_estado_programa = SelectField('Actualizar Estado del Estudiante en el Programa (si cambia)', validators=[Optional()])
 
     nuevo_estado_academico = SelectField('Actualizar Estado Académico del Estudiante (si cambia)', validators=[Optional()])
+    nota_importante = TextAreaField('Actualizar Nota Rápida / Alerta del Estudiante (opcional)', validators=[Optional()])
 
     alta_mejora_animo = BooleanField('Mejora en el estado anímico, aspecto físico y salud en general.')
     alta_disminucion_riesgo = BooleanField('Disminución del riesgo suicida en el estudiante.')
@@ -249,3 +259,10 @@ class EditarSeguimientoForm(FlaskForm):
 
     submit = SubmitField('Guardar Cambios en Seguimiento')
 
+class ReingresoForm(FlaskForm):
+    fecha_reingreso = DateField('Fecha de Reingreso', validators=[DataRequired()], format='%Y-%m-%d')
+    motivo_reingreso = SelectField('Motivo del Reingreso', choices=[('Ideación', 'Ideación'), ('Tentativa', 'Tentativa')], validators=[DataRequired()])
+    carrera = SelectField('Carrera/Programa (al momento del reingreso)', validators=[DataRequired()])
+    facultad = SelectField('Facultad (al momento del reingreso)', validators=[DataRequired()])
+    estado_academico = SelectField('Estado Académico (al momento del reingreso)', validators=[DataRequired()])
+    submit = SubmitField('Registrar Reingreso')

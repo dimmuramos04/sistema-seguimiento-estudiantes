@@ -95,7 +95,7 @@
                     <td data-label="RUT">{{ estudiante_item.rut }}</td>
                     <td data-label="Nombre Completo">{{ estudiante_item.nombre }} {{ estudiante_item.apellido_paterno }} {{ estudiante_item.apellido_materno }}</td>
                     <td data-label="Carrera/Programa">{{ estudiante_item.carrera_programa }}</td>
-                    <td data-label="Estado en Programa"><span class="status-{{ estudiante_item.estado_en_programa | lower | replace(' ', '-') }}">{{ estudiante_item.estado_en_programa }}</span></td>
+                    <td data-label="Estado en Programa"><span class="status-{{ estudiante_item.estado_periodo | lower | replace(' ', '-') }}">{{ estudiante_item.estado_periodo }}</span></td>
                     <td data-label="Acciones">
                         <a href="{{ url_for('detalle_estudiante', rut_estudiante=estudiante_item.rut) }}" class="button button-primary" style="padding: 5px 10px; font-size: 0.9em;">Ver Detalles</a>
                     </td>
@@ -117,6 +117,7 @@
         {# Botones de Descarga ahora usan button-success y button-primary respectivamente #}
         <a href="{{ url_for('descargar_estudiantes_csv') }}" class="button button-success">Descargar Estudiantes (CSV)</a>
         <a href="{{ url_for('descargar_seguimientos_csv') }}" class="button button-primary" style="margin-left:10px;">Descargar Seguimientos (CSV)</a>
+        <a href="{{ url_for('descargar_periodos_csv') }}" class="button button-warning" style="margin-left:10px; background-color: orange; color: black;">Generar Informe de Periodos (CSV)</a>
     {% endif %}
 
 {% endblock %}
