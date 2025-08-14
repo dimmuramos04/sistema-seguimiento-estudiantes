@@ -13,6 +13,10 @@ seguimiento.db
 *.xlsx
 *.csv
 
+# Archivos que ya no quiero subir
+reportes_visuales.py
+analisis_datos.py
+
 # Carpeta de gráficos generados
 graficos_generados/
 reportes_visuales_generados/
