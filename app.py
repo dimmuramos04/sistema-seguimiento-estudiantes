@@ -1141,9 +1141,17 @@ def dashboard():
         labels_estados = [row['estado_en_programa'] for row in datos_estados]
         data_estados = [row['total'] for row in datos_estados]
 
-        cursor.execute("SELECT carrera_programa, COUNT(*) as total FROM Estudiantes GROUP BY carrera_programa ORDER BY total DESC LIMIT 10")
+        cursor.execute("""
+            SELECT 
+                TRIM(carrera_programa) as carrera_limpia, 
+                COUNT(*) as total 
+            FROM Estudiantes 
+            GROUP BY carrera_limpia 
+            ORDER BY total DESC 
+            LIMIT 10
+        """)
         datos_carreras = cursor.fetchall()
-        labels_carreras = [row['carrera_programa'] for row in datos_carreras]
+        labels_carreras = [row['carrera_limpia'] for row in datos_carreras]
         data_carreras = [row['total'] for row in datos_carreras]
 
         cursor.execute("""
@@ -1255,11 +1263,11 @@ def api_reporte_periodos():
     # Creamos una "lista blanca" de columnas permitidas para evitar inyección de SQL.
     # Solo permitiremos agrupar por las columnas que definamos aquí.
     columnas_permitidas = {
-        'motivo_ingreso': 'pa.motivo_ingreso',
-        'genero': 'e.genero',
-        'estado_academico': 'e.estado_academico',
-        'carrera_programa': 'e.carrera_programa',
-        'nacionalidad': 'e.nacionalidad'
+        'motivo_ingreso': 'TRIM(pa.motivo_ingreso)',
+        'genero': 'TRIM(e.genero)',
+        'estado_academico': 'TRIM(e.estado_academico)',
+        'carrera_programa': 'TRIM(e.carrera_programa)',
+        'nacionalidad': 'TRIM(e.nacionalidad)'
     }
 
     if agrupar_por not in columnas_permitidas:
