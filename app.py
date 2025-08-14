@@ -1194,7 +1194,7 @@ def dashboard():
 
 @app.route('/reportes')
 @login_required
-@admin_required
+@roles_required('admin', 'profesional', 'ingreso')
 def reportes():
     """
     Renderiza la página de reportes interactivos.
@@ -1242,7 +1242,7 @@ def logout():
 
 @app.route('/api/reporte_periodos')
 @login_required
-@admin_required
+@roles_required('admin', 'profesional', 'ingreso')
 def api_reporte_periodos():
     fecha_inicio = request.args.get('inicio')
     fecha_fin = request.args.get('fin')
