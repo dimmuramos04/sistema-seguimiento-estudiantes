@@ -1,6 +1,4 @@
-/* --- :root - VARIABLES GLOBALES DE CSS --- */
 /* Aquí se definen los colores y valores que se usarán en toda la web. */
-/* Si necesitas cambiar un color corporativo, solo lo cambias aquí y se actualizará en todos lados. */
 :root {
     /* Colores Corporativos ULS */
     --color-uls-azul: #003082;
@@ -562,4 +560,33 @@ legend {
     border-color: #86b7fe;
     outline: 0;
     box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+}
+
+/* --- Estilos para el formulario de la página de reportes --- */
+
+/* Estilo para pantallas grandes (desktop) */
+.report-form {
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+    flex-wrap: wrap; /* Permite que los elementos bajen si no hay espacio */
+}
+
+/* Hacemos que cada elemento del formulario ocupe un espacio flexible */
+.report-form > div {
+    flex: 1 1 180px; /* Crece, se encoge, base de 180px */
+}
+
+.report-form button {
+    flex-shrink: 0; /* Evita que el botón se encoja */
+}
+
+
+/* Estilo para pantallas pequeñas (móviles) */
+@media screen and (max-width: 768px) {
+    .report-form {
+        /* Cambiamos la dirección a columna para que se apilen verticalmente */
+        flex-direction: column;
+        align-items: stretch; /* Hacemos que ocupen todo el ancho */
+    }
 }
