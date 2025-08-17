@@ -3,8 +3,6 @@ import sqlite3
 import os
 from datetime import date
 from werkzeug.security import generate_password_hash
-import pandas as pd
-import numpy as np
 
 # --- Constantes para las Listas Desplegables ---
 # (Las listas de constantes permanecen sin cambios)
@@ -111,6 +109,7 @@ def get_db_connection():
     return conn
 
 def seed_data():
+    import pandas as pd
     """Inserta datos desde Excel, manejando correctamente los valores nulos (NaN)."""
     print("Intentando sembrar datos...")
     conn = get_db_connection()
