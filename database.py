@@ -124,13 +124,9 @@ def seed_data():
     
     print("Base de datos vacía. Sembrando datos nuevos...")
     try:
-        # 1. Sembrar Usuarios
-        usuarios = [
-            ('admin', generate_password_hash('admin123', method='pbkdf2:sha256'), 'admin', 'Admin General', 1),
-            ('profesional1', generate_password_hash('profe123', method='pbkdf2:sha256'), 'profesional', 'Patricia Astroza', 1)
-        ]
-        cursor.executemany("INSERT INTO Usuarios (username, password_hash, rol, nombre_completo, activo) VALUES (?, ?, ?, ?, ?)", usuarios)
-        print(f"{len(usuarios)} usuarios de prueba insertados.")
+        # La creación de usuarios por defecto ha sido eliminada por seguridad.
+        # El primer usuario 'admin' debe ser creado manualmente.
+        print("La siembra de usuarios ha sido omitida por seguridad.")
 
         excel_path = os.path.join(BASE_DIR, 'datos_iniciales.xlsx')
         if not os.path.exists(excel_path):

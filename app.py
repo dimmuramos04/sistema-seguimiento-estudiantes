@@ -1,13 +1,14 @@
 # app.py
 import os
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, Response, flash
+from flask import Flask, render_template, request, redirect, url_for, Response, flash, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from forms import LoginForm, NuevoEstudianteForm, CambiarPasswordForm, EditarEstudianteForm, NuevoSeguimientoForm, EditarSeguimientoForm, ReingresoForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from flask import jsonify
+from flask_talisman import Talisman
 import sqlite3
 import io
 import csv
@@ -25,6 +26,38 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+
+# --- CONFIGURACIÓN DE COOKIES DE SESIÓN SEGURAS ---
+
+# 1. La cookie solo se enviará a través de HTTPS. (Requiere que tengas HTTPS en producción)
+app.config['SESSION_COOKIE_SECURE'] = True
+
+# 2. Impide que JavaScript pueda acceder a la cookie de sesión.
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+
+# 3. Protege contra ataques CSRF, asegurando que la cookie no se envíe en peticiones de otros sitios.
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# 4. Establece un tiempo de expiración para la sesión (ej. 30 minutos de inactividad)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+# --- FIN DE LA CONFIGURACIÓN ---
+
+# --- CONFIGURACIÓN DE TALISMAN ---
+# Definimos nuestra política de seguridad de contenidos (CSP)
+csp = {
+    'default-src': '\'self\'',
+    'script-src': [
+        '\'self\'',
+        'https://cdn.jsdelivr.net',
+        '\'unsafe-inline\''  # <-- Permite los scripts en línea (para los gráficos)
+    ],
+    'style-src': [
+        '\'self\'',
+        '\'unsafe-inline\''  # <-- Permite los estilos en línea
+    ]
+}
+Talisman(app, content_security_policy=csp) # <-- Activa Talisman con nuestra CSP
+# --- FIN DE LA CONFIGURACIÓN ---
 
 #init_db()
 login_manager = LoginManager()
@@ -86,6 +119,11 @@ def load_user(user_id):
     finally:
         if conn: conn.close()
 
+# Función se asegura de que todas las sesiones usen el tiempo de expiración
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+
 # --- Definiciones de Rutas ---
 @app.route('/')
 @login_required
@@ -142,11 +180,11 @@ def index():
         estudiantes_con_alerta = cursor.fetchall()
 
 
-        # --- PASO 3: Obtener la lista de estudiantes ---
+        # --- PASO 3: Lógica de Búsqueda, Filtro y ORDENAMIENTO --- ---
         search_term = request.args.get('search_term', '').strip()
         filter_estado = request.args.get('filter_estado', '').strip()
         show_archived = request.args.get('show_archived') == 'true'
-        
+
         # Esta es la consulta base correcta que une las tablas
         base_query = """
             SELECT 
@@ -185,8 +223,8 @@ def index():
         if conditions:
             # Se usa AND porque la consulta base ya tiene un WHERE
             final_query += " AND " + " AND ".join(conditions)
-        
-        final_query += " ORDER BY e.apellido_paterno, e.apellido_materno, e.nombre"
+
+        final_query += " ORDER BY e.apellido_paterno, e.apellido_materno, e.nombre ASC"
         
         cursor.execute(final_query, tuple(params))
         estudiantes = cursor.fetchall()
@@ -1227,7 +1265,7 @@ def login():
             if user_data:
                 user_obj = User(id=user_data['id'], username=user_data['username'], password_hash=user_data['password_hash'], rol=user_data['rol'], nombre_completo=user_data['nombre_completo'], activo=user_data['activo'])
                 if user_obj.activo and user_obj.check_password(password_form):
-                    login_user(user_obj)
+                    login_user(user_obj, remember=form.remember_me.data)
                     next_page = request.args.get('next')
                     if not next_page or not next_page.startswith('/'):
                         next_page = url_for('index')

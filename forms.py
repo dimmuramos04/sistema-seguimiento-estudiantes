@@ -11,15 +11,15 @@ class LoginForm(FlaskForm):
     # Cada atributo de la clase representa un campo <input> en el formulario.
 
     # StringField para el nombre de usuario.
-    # El primer argumento es la etiqueta (label) del campo.
-    # 'validators' es una lista de reglas. DataRequired significa que el campo no puede estar vacío.
     username = StringField('Nombre de Usuario',
                            validators=[DataRequired(message="El nombre de usuario es requerido.")])
 
     # PasswordField para la contraseña.
     password = PasswordField('Contraseña',
                              validators=[DataRequired(message="La contraseña es requerida.")])
-
+    # Campo para recordar la sesión
+    remember_me = BooleanField('Recuérdame')
+    
     # SubmitField para el botón de envío.
     submit = SubmitField('Iniciar Sesión')
 

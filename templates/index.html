@@ -79,12 +79,12 @@
     </form>
 
     {% if estudiantes %}
-        <table>
+        <table id="tabla-estudiantes">
             <thead>
                 <tr>
-                    <th>RUT</th>
-                    <th>Nombre Completo</th>
-                    <th>Carrera/Programa</th>
+                    <th data-column="rut" style="cursor: pointer;">RUT</th>
+                    <th data-column="nombre" style="cursor: pointer;">Nombre Completo</th>
+                    <th data-column="carrera" style="cursor: pointer;">Carrera/Programa</th>
                     <th>Estado en Programa</th>
                     <th>Acciones</th>
                 </tr>
@@ -120,4 +120,61 @@
         <a href="{{ url_for('descargar_periodos_csv') }}" class="button button-warning" style="margin-left:10px; background-color: orange; color: black;">Generar Informe de Periodos (CSV)</a>
     {% endif %}
 
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabla = document.getElementById('tabla-estudiantes');
+        const encabezados = tabla.querySelectorAll('thead th[data-column]');
+        const cuerpoTabla = tabla.querySelector('tbody');
+        const filas = Array.from(cuerpoTabla.querySelectorAll('tr'));
+
+        encabezados.forEach(th => {
+            th.addEventListener('click', () => {
+                const columna = th.dataset.column;
+                const ordenActual = th.dataset.order || 'desc';
+                const nuevoOrden = ordenActual === 'asc' ? 'desc' : 'asc';
+                th.dataset.order = nuevoOrden;
+
+                // Limpiar indicadores de otros encabezados
+                encabezados.forEach(h => {
+                    if (h !== th) {
+                        h.innerHTML = h.innerHTML.replace(' ▲', '').replace(' ▼', '');
+                        delete h.dataset.order;
+                    }
+                });
+
+                // Ordenar las filas
+                filas.sort((filaA, filaB) => {
+                    let valorA, valorB;
+                
+                    // Obtenemos el valor de la celda correcta para cada columna
+                    if (columna === 'rut') {
+                        valorA = filaA.children[0].textContent.trim();
+                        valorB = filaB.children[0].textContent.trim();
+                    } else if (columna === 'nombre') {
+                        valorA = filaA.children[1].textContent.trim();
+                        valorB = filaB.children[1].textContent.trim();
+                    } else if (columna === 'carrera') {
+                        valorA = filaA.children[2].textContent.trim();
+                        valorB = filaB.children[2].textContent.trim();
+                    }
+
+                    // Comparamos los valores
+                    if (nuevoOrden === 'asc') {
+                        return valorA.localeCompare(valorB, undefined, {numeric: true});
+                    } else {
+                        return valorB.localeCompare(valorA, undefined, {numeric: true});
+                    }
+                });
+
+                // Actualizar la tabla en el DOM
+                cuerpoTabla.innerHTML = ''; // Limpiamos la tabla
+                filas.forEach(fila => cuerpoTabla.appendChild(fila)); // Añadimos las filas ordenadas
+
+                // Actualizar indicador visual
+                th.innerHTML = th.innerHTML.replace(' ▲', '').replace(' ▼', '');
+                th.innerHTML += nuevoOrden === 'asc' ? ' ▲' : ' ▼';
+            });
+        });
+    });
+    </script>
 {% endblock %}
