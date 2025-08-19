@@ -1349,4 +1349,5 @@ def api_reporte_periodos():
             conn.close()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    is_debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=is_debug_mode, port=8080, ssl_context=('cert.pem', 'key.pem'))

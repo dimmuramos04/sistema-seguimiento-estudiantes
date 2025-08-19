@@ -16,6 +16,9 @@ seguimiento.db
 # Archivos que ya no quiero subir
 reportes_visuales.py
 analisis_datos.py
+reporte_seguridad.txt
+cert.pem
+key.pem
 
 # Carpeta de gráficos generados
 graficos_generados/
