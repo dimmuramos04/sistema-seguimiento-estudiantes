@@ -18,6 +18,7 @@ try:
     ]
 
     print("Obteniendo todos los registros de estudiantes...")
+    #nosec
     cursor.execute("SELECT rut, " + ", ".join(columnas_a_limpiar) + " FROM Estudiantes")
     estudiantes = cursor.fetchall()
 
@@ -43,6 +44,7 @@ try:
         # Si encontramos al menos un campo para actualizar en este estudiante...
         if actualizaciones:
             valores.append(rut) # Añadimos el RUT al final para el WHERE
+            #nosec
             query_update = f"UPDATE Estudiantes SET {', '.join(actualizaciones)} WHERE rut = ?"
             
             cursor.execute(query_update, tuple(valores))

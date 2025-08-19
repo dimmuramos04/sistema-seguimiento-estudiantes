@@ -9,6 +9,8 @@ from functools import wraps
 from datetime import date, datetime, timedelta
 from flask import jsonify
 from flask_talisman import Talisman
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import sqlite3
 import io
 import csv
@@ -26,6 +28,14 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+
+# Inicializar el limitador
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"], # Límites generales para toda la app
+    storage_uri="memory://" # Para guardar los conteos en memoria
+)
 
 # --- CONFIGURACIÓN DE COOKIES DE SESIÓN SEGURAS ---
 
@@ -1249,6 +1259,7 @@ def reportes():
     return render_template('reportes.html')
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
