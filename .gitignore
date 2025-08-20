@@ -14,6 +14,11 @@ seguimiento.db
 *.csv
 
 # Archivos que ya no quiero subir
+migracion_02_crear_periodos.py
+migracion_03_add_nota_estudiante.py
+migracion_04_add_facultad_sexo.py
+migracion_05_add_snapshot_reingreso.py
+util_limpiar_datos.py
 reportes_visuales.py
 analisis_datos.py
 migrar_profesionales.py
