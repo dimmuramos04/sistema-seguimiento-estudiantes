@@ -16,8 +16,11 @@
         {% endif %}
     {% endwith %}
 
-    <p>
-        {# Botón Añadir Nuevo Usuario ahora usa button-primary #}
+    <p style="display: flex; gap: 10px;">
+        {# Botón administrar profesionales #}
+        <a href="{{ url_for('admin_gestionar_profesionales') }}" class="button button-secondary">Gestionar Lista de Profesionales</a>
+        
+        {# Botón añadir usuario #}
         <a href="{{ url_for('crear_usuario') }}" class="button button-primary">Añadir Nuevo Usuario</a>
     </p>
 

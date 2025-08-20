@@ -248,6 +248,14 @@ def init_db():
     print("Tabla Usuarios (SQLite) verificada/creada.")
 
     cursor.execute('''
+    CREATE TABLE IF NOT EXISTS Profesionales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre_completo TEXT UNIQUE NOT NULL,
+        tipo TEXT NOT NULL  -- 'Trabajadora Social' o 'Psicólogo/a'
+    )''')
+    print("Tabla Profesionales (SQLite) verificada/creada.")
+
+    cursor.execute('''
     CREATE TABLE IF NOT EXISTS HistorialCambios (
         id_cambio INTEGER PRIMARY KEY AUTOINCREMENT, fecha_cambio TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         nombre_usuario TEXT NOT NULL, accion TEXT NOT NULL, modelo_afectado TEXT NOT NULL,

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar Profesionales{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="app-title-header">
+        <h2>Gestionar Lista de Profesionales</h2>
+    </div>
+    <p>Desde aquí podés agregar o eliminar profesionales de las listas que se usan en toda la aplicación.</p>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 30px;">
+        
+        <div style="flex: 1; min-width: 300px;">
+            <h3>Profesionales Actuales</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre Completo</th>
+                        <th>Tipo</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in profesionales %}
+                    <tr>
+                        <td>{{ p['nombre_completo'] }}</td>
+                        <td>{{ p['tipo'] }}</td>
+                        <td>
+                            <form action="{{ url_for('eliminar_profesional', id=p['id']) }}" method="post" 
+                                data-nombre="{{ p['nombre_completo'] }}" 
+                                onsubmit="return confirmarEliminacion(this);">
+                                <button type="submit" class="button button-danger" style="padding: 5px 10px; font-size: 14px;">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3">No hay profesionales registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="flex: 1; min-width: 300px;">
+            <h3>Agregar Nuevo Profesional</h3>
+            <form action="{{ url_for('admin_gestionar_profesionales') }}" method="post">
+                <fieldset>
+                    <legend>Nuevo Profesional</legend>
+                    <div class="form-group">
+                        <label for="nombre_completo">Nombre Completo</label>
+                        <input type="text" id="nombre_completo" name="nombre_completo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tipo">Tipo de Profesional</label>
+                        <select id="tipo" name="tipo" required>
+                            <option value="">Seleccione...</option>
+                            <option value="Trabajadora Social">Trabajadora Social</option>
+                            <option value="Psicólogo/a">Psicólogo/a</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <input type="submit" value="Agregar Profesional" class="button button-primary">
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <a href="{{ url_for('admin_listar_usuarios') }}" class="button button-secondary" style="margin-top: 20px;">Volver a la Lista de Usuarios</a>
+</div>
+
+<script>
+function confirmarEliminacion(formulario) {
+    // Obtenemos el nombre desde el atributo 'data-nombre' que pusimos en el form
+    const nombre = formulario.getAttribute('data-nombre');
+    
+    // Creamos el mensaje y lo mostramos en la ventana de confirmación
+    const mensaje = `¿Estás seguro de que quieres eliminar a ${nombre}?`;
+    return confirm(mensaje);
+}
+</script>
+{% endblock %}

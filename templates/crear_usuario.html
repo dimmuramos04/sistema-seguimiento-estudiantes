@@ -3,60 +3,106 @@
 {% block title %}Crear Nuevo Usuario{% endblock %}
 
 {% block content %}
-    <h1>Crear Nuevo Usuario</h1>
+    <div class="container">
+        <h1>Crear Nuevo Usuario</h1>
 
-    {# Mostrar mensajes flash #}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category | default('info') }}" role="alert">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
-    <form method="POST" action="{{ url_for('crear_usuario') }}">
-        <div class="form-group">
-            <label for="username">Nombre de Usuario (para login):</label>
-            <input type="text" id="username" name="username" value="{{ username if username else '' }}" required>
-        </div>
-
-        <div class="form-group">
-            <label for="password">Contraseña:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-
-        <div class="form-group">
-            <label for="confirm_password">Confirmar Contraseña:</label>
-            <input type="password" id="confirm_password" name="confirm_password" required>
-        </div>
-
-        <div class="form-group">
-            <label for="nombre_completo">Nombre Completo (para mostrar):</label>
-            <input type="text" id="nombre_completo" name="nombre_completo" value="{{ nombre_completo if nombre_completo else '' }}">
-        </div>
-
-        <div class="form-group">
-            <label for="rol">Rol del Usuario:</label>
-            <select id="rol" name="rol" required>
-                <option value="">Seleccione un rol...</option>
-                {% for rol_opcion in lista_roles %}
-                <option value="{{ rol_opcion }}" {% if rol_seleccionado == rol_opcion %}selected{% endif %}>{{ rol_opcion | capitalize }}</option>
+        {# Mostrar mensajes flash #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category | default('info') }}" role="alert">
+                        {{ message }}
+                    </div>
                 {% endfor %}
-            </select>
-        </div>
+            {% endif %}
+        {% endwith %}
 
-        <div class="form-group">
-            <input type="checkbox" id="activo" name="activo" value="1" {% if activo_check or activo_check is not defined %}checked{% endif %}> {# Marcado por defecto o si es true #}
-            <label for="activo" style="font-weight: normal; display: inline;">Usuario Activo</label>
-        </div>
+        <form method="POST" action="{{ url_for('crear_usuario') }}">
+            <div class="form-group">
+                <label for="username">Nombre de Usuario (para login):</label>
+                <input type="text" class="form-control" id="username" name="username" value="{{ username if username else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirmar Contraseña:</label>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="rol">Rol del Usuario:</label>
+                <select class="form-control" id="rol" name="rol" required>
+                    <option value="">Seleccione un rol...</option>
+                    {% for rol_opcion in lista_roles %}
+                    <option value="{{ rol_opcion }}" {% if rol_seleccionado == rol_opcion %}selected{% endif %}>{{ rol_opcion | capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" id="nombre_completo_text_div">
+                <label for="nombre_completo_text">Nombre Completo (para mostrar):</label>
+                <input type="text" class="form-control" id="nombre_completo_text" name="nombre_completo" value="{{ nombre_completo if nombre_completo else '' }}">
+            </div>
+
+            <div class="form-group" id="nombre_completo_select_div" style="display: none;">
+                <label for="nombre_completo_select">Nombre del Profesional:</label>
+                <select class="form-control" id="nombre_completo_select">
+                    <option value="">Seleccione un profesional...</option>
+                    {% for profesional in profesionales %}
+                        <option value="{{ profesional }}" {% if nombre_completo == profesional %}selected{% endif %}>{{ profesional }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="activo" name="activo" value="1" {% if activo_check or activo_check is not defined %}checked{% endif %}>
+                <label for="activo" style="font-weight: normal; display: inline;">Usuario Activo</label>
+            </div>
         
-        <div class="form-group" style="margin-top: 20px; display: flex; gap: 10px;"> {# Añadido display:flex y gap #}
-            {# Botón Crear Usuario ahora usa button-primary #}
-            <input type="submit" value="Crear Usuario" class="button button-primary">
-            {# Botón Cancelar ahora usa button-secondary #}
-            <a href="{{ url_for('admin_listar_usuarios') }}" class="button button-secondary">Cancelar</a>
-        </div>
-    </form>
+            <div class="form-group" style="margin-top: 20px; display: flex; gap: 10px;">
+                <input type="submit" value="Crear Usuario" class="button button-primary">
+                <a href="{{ url_for('admin_listar_usuarios') }}" class="button button-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rolSelect = document.getElementById('rol');
+            const nombreTextDiv = document.getElementById('nombre_completo_text_div');
+            const nombreSelectDiv = document.getElementById('nombre_completo_select_div');
+            const nombreTextInput = document.getElementById('nombre_completo_text');
+            const nombreSelectInput = document.getElementById('nombre_completo_select');
+
+            function toggleNombreField() {
+                if (rolSelect.value === 'profesional') {
+                    // Si el rol es 'profesional', mostramos el menú desplegable y ocultamos el de texto
+                    nombreTextDiv.style.display = 'none';
+                    nombreSelectDiv.style.display = 'block';
+                    
+                    // Importante: le quitamos el atributo 'name' al campo de texto
+                    // y se lo ponemos al menú desplegable para que se envíe el valor correcto.
+                    nombreTextInput.removeAttribute('name');
+                    nombreSelectInput.setAttribute('name', 'nombre_completo');
+                } else {
+                    // Para cualquier otro rol, hacemos lo contrario
+                    nombreTextDiv.style.display = 'block';
+                    nombreSelectDiv.style.display = 'none';
+
+                    nombreSelectInput.removeAttribute('name');
+                    nombreTextInput.setAttribute('name', 'nombre_completo');
+                }
+            }
+
+            // Escuchamos cada vez que el usuario cambia el rol
+            rolSelect.addEventListener('change', toggleNombreField);
+
+            // Ejecutamos la función una vez al cargar la página para que muestre el campo correcto
+            // si el formulario se recarga por un error.
+            toggleNombreField();
+        });
+    </script>
 {% endblock %}

@@ -278,13 +278,21 @@ def index():
 def nuevo_estudiante():
     form = NuevoEstudianteForm()
 
-    # --- Toda tu lógica para llenar los menús desplegables se mantiene intacta ---
+    # Obtener la lista de trabajadoras sociales y psicólogos
+    conn = get_db_connection()
+    trabajadoras_sociales = conn.execute("SELECT nombre_completo FROM Profesionales WHERE tipo = 'Trabajadora Social' ORDER BY nombre_completo").fetchall()
+    psicologos = conn.execute("SELECT nombre_completo FROM Profesionales WHERE tipo = 'Psicólogo/a' ORDER BY nombre_completo").fetchall()
+    conn.close()
+
+    # Llenar los menús desplegables
+    form.trabajadora_social.choices = [('', 'Seleccione...')] + [(ts['nombre_completo'], ts['nombre_completo']) for ts in trabajadoras_sociales]
+    form.psicologo.choices = [('', 'Seleccione...')] + [(p['nombre_completo'], p['nombre_completo']) for p in psicologos]
+
+    # --- Toda tu lógica para llenar los menús desplegables ---
     form.sexo.choices = [('', 'Seleccione...')] + [(s, s) for s in LISTA_SEXO]
     form.genero.choices = [('', 'Seleccione...')] + [(g, g) for g in LISTA_GENERO]
     form.carrera_programa.choices = [('', 'Seleccione...')] + [(c, c) for c in LISTA_CARRERAS]
     form.facultad.choices = [('', 'Seleccione...')] + [(f, f) for f in LISTA_FACULTADES]
-    form.trabajadora_social.choices = [('', 'Seleccione...')] + [(ts, ts) for ts in LISTA_TRABAJADORAS_SOCIALES]
-    form.psicologo.choices = [('', 'Seleccione...')] + [(p, p) for p in LISTA_PSICOLOGOS]
     form.nacionalidad.choices = [('', 'Seleccione...')] + [(n, n) for n in LISTA_NACIONALIDADES]
     opciones_estado_inicial = [e for e in LISTA_ESTADO_PROGRAMA if e in ["Activo", "No acepta ingresar", "En evaluación inicial"]]
     form.estado_programa.choices = [(e, e) for e in opciones_estado_inicial]
@@ -640,6 +648,16 @@ def editar_estudiante(rut_estudiante):
 
     form = EditarEstudianteForm()
 
+    # Obtener la lista de trabajadoras sociales y psicólogos
+    conn = get_db_connection()
+    trabajadoras_sociales = conn.execute("SELECT nombre_completo FROM Profesionales WHERE tipo = 'Trabajadora Social' ORDER BY nombre_completo").fetchall()
+    psicologos = conn.execute("SELECT nombre_completo FROM Profesionales WHERE tipo = 'Psicólogo/a' ORDER BY nombre_completo").fetchall()
+    conn.close()
+
+    # Llenar los menús desplegables
+    form.trabajadora_social.choices = [('', 'Seleccione...')] + [(ts['nombre_completo'], ts['nombre_completo']) for ts in trabajadoras_sociales]
+    form.psicologo.choices = [('', 'Seleccione...')] + [(p['nombre_completo'], p['nombre_completo']) for p in psicologos]
+
     form.sexo.choices = [(s, s) for s in LISTA_SEXO]
     form.genero.choices = [(g, g) for g in LISTA_GENERO]
     form.carrera_programa.choices = [(c, c) for c in LISTA_CARRERAS]
@@ -794,11 +812,26 @@ def admin_listar_usuarios():
 
 @app.route('/admin/usuarios/crear', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def crear_usuario():
     if not current_user.is_authenticated or current_user.rol != 'admin':
         flash('No tienes permiso para realizar esta acción.', 'danger')
         return redirect(url_for('index'))
     lista_de_roles_posibles = ["admin", "profesional", "ingreso"]
+
+    conn_prof = None
+    profesionales_lista = []
+    try:
+        conn_prof = get_db_connection()
+        profesionales_db = conn_prof.execute("SELECT nombre_completo FROM Profesionales ORDER BY nombre_completo").fetchall()
+        profesionales_lista = [p['nombre_completo'] for p in profesionales_db]
+    except Exception as e:
+        app.logger.error(f"Error al obtener lista de profesionales para crear usuario: {e}", exc_info=True)
+        flash("Error crítico: no se pudo cargar la lista de profesionales.", "danger")
+    finally:
+        if conn_prof:
+            conn_prof.close()
+
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -808,10 +841,10 @@ def crear_usuario():
         activo = 1 if request.form.get('activo') == 'on' else 0
         if not username or not password or not rol:
             flash('Nombre de usuario, contraseña y rol son requeridos.', 'danger')
-            return render_template('crear_usuario.html', username=username, nombre_completo=nombre_completo, rol_seleccionado=rol, activo_check=(activo == 1), lista_roles=lista_de_roles_posibles)
+            return render_template('crear_usuario.html', username=username, nombre_completo=nombre_completo, rol_seleccionado=rol, activo_check=(activo == 1), lista_roles=lista_de_roles_posibles, profesionales=profesionales_lista)
         if password != confirm_password:
             flash('Las contraseñas no coinciden.', 'danger')
-            return render_template('crear_usuario.html', username=username, nombre_completo=nombre_completo, rol_seleccionado=rol, activo_check=(activo == 1), lista_roles=lista_de_roles_posibles)
+            return render_template('crear_usuario.html', username=username, nombre_completo=nombre_completo, rol_seleccionado=rol, activo_check=(activo == 1), lista_roles=lista_de_roles_posibles, profesionales=profesionales_lista)
         conn = None
         try:
             conn = get_db_connection()
@@ -819,7 +852,7 @@ def crear_usuario():
             cursor.execute("SELECT id FROM Usuarios WHERE username = ?", (username,))
             if cursor.fetchone():
                 flash('Ese nombre de usuario ya está en uso. Por favor, elige otro.', 'danger')
-                return render_template('crear_usuario.html', username=username, nombre_completo=nombre_completo, rol_seleccionado=rol, activo_check=(activo == 1), lista_roles=lista_de_roles_posibles)
+                return render_template('crear_usuario.html', username=username, nombre_completo=nombre_completo, rol_seleccionado=rol, activo_check=(activo == 1), lista_roles=lista_de_roles_posibles, profesionales=profesionales_lista)
             hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
             cursor.execute("INSERT INTO Usuarios (username, password_hash, rol, nombre_completo, activo) VALUES (?, ?, ?, ?, ?)", (username, hashed_password, rol, nombre_completo, activo))
             conn.commit()
@@ -828,18 +861,15 @@ def crear_usuario():
         except sqlite3.IntegrityError:
             if conn: conn.rollback()
             flash(f'Error de base de datos: Nombre de usuario "{username}" ya existe.', 'danger')
+            app.logger.warning(f"Intento de crear usuario duplicado: {username}")
         except sqlite3.Error as e:
             if conn: conn.rollback()
-            print(f"Error de BD al crear usuario: {e}")
+            app.logger.error(f"Error de BD al crear usuario '{username}': {e}", exc_info=True)
             flash(f'Error de base de datos al crear usuario: {e}', 'danger')
-        except Exception as e:
-            if conn: conn.rollback()
-            app.logger.error(f"Error general al crear usuario: {e}", exc_info=True)
-            flash('Ocurrió un error al crear el usuario.', 'danger')
         finally:
             if conn: conn.close()
-        return render_template('crear_usuario.html', username=username, nombre_completo=nombre_completo, rol_seleccionado=rol, activo_check=(activo == 1), lista_roles=lista_de_roles_posibles)
-    return render_template('crear_usuario.html', lista_roles=lista_de_roles_posibles)
+        return render_template('crear_usuario.html', username=username, nombre_completo=nombre_completo, rol_seleccionado=rol, activo_check=(activo == 1), lista_roles=lista_de_roles_posibles, profesionales=profesionales_lista)
+    return render_template('crear_usuario.html', lista_roles=lista_de_roles_posibles, profesionales=profesionales_lista)
 
 @app.route('/admin/usuarios/<int:id_usuario>/eliminar', methods=['POST'])
 @login_required
@@ -928,6 +958,42 @@ def editar_usuario(id_usuario):
         return redirect(url_for('admin_listar_usuarios'))
     finally:
         if conn: conn.close()
+
+@app.route('/admin/profesionales', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_gestionar_profesionales():
+    conn = get_db_connection()
+
+    if request.method == 'POST':
+        nombre = request.form.get('nombre_completo')
+        tipo = request.form.get('tipo')
+        if nombre and tipo:
+            try:
+                conn.execute(
+                    "INSERT INTO Profesionales (nombre_completo, tipo) VALUES (?, ?)",
+                    (nombre, tipo)
+                )
+                conn.commit()
+                flash('Profesional agregado exitosamente.', 'success')
+            except sqlite3.IntegrityError:
+                flash('Error: El nombre de este profesional ya existe.', 'danger')
+        return redirect(url_for('admin_gestionar_profesionales'))
+
+    profesionales = conn.execute("SELECT * FROM Profesionales ORDER BY tipo, nombre_completo").fetchall()
+    conn.close()
+    return render_template('admin_profesionales.html', profesionales=profesionales)
+
+@app.route('/admin/profesionales/<int:id>/eliminar', methods=['POST'])
+@login_required
+@admin_required
+def eliminar_profesional(id):
+    conn = get_db_connection()
+    conn.execute("DELETE FROM Profesionales WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    flash('Profesional eliminado exitosamente.', 'success')
+    return redirect(url_for('admin_gestionar_profesionales'))
 
 
 @app.route('/seguimiento/<int:id_seguimiento>/editar', methods=['GET', 'POST'])
