@@ -78,7 +78,9 @@ csp = {
     'style-src': [
         '\'self\'',
         '\'unsafe-inline\''  # <-- Permite los estilos en línea
-    ]
+    ],
+    'form-action': '\'self\'',      # Permite que los formularios solo se envíen a tu propio dominio.
+    'frame-ancestors': '\'none\''  # Prohíbe que tu sitio sea cargado en iframes.
 }
 Talisman(app, content_security_policy=csp) # <-- Activa Talisman con nuestra CSP
 # --- FIN DE LA CONFIGURACIÓN ---
@@ -1376,4 +1378,4 @@ def api_reporte_periodos():
 
 if __name__ == '__main__':
     is_debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
-    app.run(debug=is_debug_mode, port=8080, ssl_context=('cert.pem', 'key.pem'))
+    app.run(debug=is_debug_mode, port=5001, ssl_context=('cert.pem', 'key.pem'))
