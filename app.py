@@ -11,6 +11,8 @@ from flask import jsonify
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from logging.handlers import RotatingFileHandler
+import logging
 import sqlite3
 import io
 import csv
@@ -29,13 +31,25 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 
-# Inicializar el limitador
+# --- CONFIGURACIÓN DEL LIMITADOR ---
 limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=["200 per day", "50 per hour"], # Límites generales para toda la app
     storage_uri="memory://" # Para guardar los conteos en memoria
 )
+# --- FIN DE LA CONFIGURACIÓN DEL LIMITADOR ---
+
+# --- CONFIGURACIÓN DEL LOGGER ---
+handler = RotatingFileHandler('app.log', maxBytes=100000, backupCount=3)
+logger_format = logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+)
+handler.setFormatter(logger_format)
+app.logger.addHandler(handler)
+app.logger.setLevel(logging.INFO)
+app.logger.info('Aplicación iniciada')
+# --- FIN DE LA CONFIGURACIÓN ---
 
 # --- CONFIGURACIÓN DE COOKIES DE SESIÓN SEGURAS ---
 
@@ -124,7 +138,7 @@ def load_user(user_id):
                         nombre_completo=user_data['nombre_completo'], activo=user_data['activo'])
         return None
     except Exception as e:
-        print(f"Error en load_user: {e}")
+        app.logger.error(f"Error en load_user: {e}", exc_info=True)
         return None
     finally:
         if conn: conn.close()
@@ -247,7 +261,7 @@ def index():
                                filter_estado_active=filter_estado, show_archived_active=show_archived,
                                lista_estado_programa_template=LISTA_ESTADO_PROGRAMA)
     except Exception as e:
-        print(f"EXCEPCIÓN en la función index: {e}")
+        app.logger.error(f"EXCEPCIÓN en la función index: {e}", exc_info=True)
         flash("Ocurrió un error al cargar la lista de estudiantes.", "danger")
         return render_template('index.html', estudiantes=[], conteo_anual=[],
                                estudiantes_con_alerta=[], search_term_active="",
@@ -415,7 +429,7 @@ def detalle_estudiante(rut_estudiante):
                                estudiante_estado_actual=estado_actual)
 
     except Exception as e:
-        print(f"EXCEPCIÓN en detalle_estudiante: {e}")
+        app.logger.error(f"EXCEPCIÓN en detalle_estudiante: {e}", exc_info=True)
         flash('Ocurrió un error al cargar los detalles del estudiante.', 'danger')
         return redirect(url_for('index'))
     finally:
@@ -520,7 +534,7 @@ def nuevo_seguimiento(rut_estudiante):
 
             except Exception as e:
                 if conn: conn.rollback()
-                print(f"Error al insertar seguimiento: {e}")
+                app.logger.error(f"Error al insertar seguimiento: {e}", exc_info=True)
                 flash(f"Error al guardar el seguimiento: {e}", 'danger')
 
         if request.method == 'GET':
@@ -676,7 +690,7 @@ def editar_estudiante(rut_estudiante):
             return redirect(url_for('detalle_estudiante', rut_estudiante=rut_estudiante))
         except Exception as e:
             if conn_post: conn_post.rollback()
-            print(f"Error al actualizar estudiante: {e}")
+            app.logger.error(f"Error al actualizar estudiante: {e}", exc_info=True)
             flash('Ocurrió un error al guardar los cambios.', 'danger')
         finally:
             if conn_post: conn_post.close()
@@ -715,8 +729,6 @@ def editar_estudiante(rut_estudiante):
         form.nota_importante.data = estudiante_obj['nota_importante']
 
     return render_template('editar_estudiante.html', form=form, estudiante=estudiante_obj)
-
-# En app.py
 
 @app.route('/estudiante/<rut_estudiante>/eliminar', methods=['POST'])
 @login_required
@@ -772,7 +784,7 @@ def admin_listar_usuarios():
         usuarios = cursor.fetchall()
         return render_template('admin_usuarios.html', usuarios=usuarios)
     except Exception as e:
-        print(f"Error en admin_listar_usuarios: {e}")
+        app.logger.error(f"Error en admin_listar_usuarios: {e}", exc_info=True)
         flash('Ocurrió un error al cargar la lista de usuarios.', 'danger')
         return redirect(url_for('index'))
     finally:
@@ -820,7 +832,7 @@ def crear_usuario():
             flash(f'Error de base de datos al crear usuario: {e}', 'danger')
         except Exception as e:
             if conn: conn.rollback()
-            print(f"Error general al crear usuario: {e}")
+            app.logger.error(f"Error general al crear usuario: {e}", exc_info=True)
             flash('Ocurrió un error al crear el usuario.', 'danger')
         finally:
             if conn: conn.close()
@@ -909,7 +921,7 @@ def editar_usuario(id_usuario):
         return redirect(url_for('admin_listar_usuarios'))
     except Exception as e:
         if conn: conn.rollback()
-        print(f"Error general en editar_usuario (ID: {id_usuario}): {e}")
+        app.logger.error(f"Error general en editar_usuario (ID: {id_usuario}): {e}", exc_info=True)
         flash('Ocurrió un error al intentar procesar la solicitud.', 'danger')
         return redirect(url_for('admin_listar_usuarios'))
     finally:
@@ -968,6 +980,7 @@ def editar_seguimiento(id_seguimiento):
             return redirect(url_for('detalle_estudiante', rut_estudiante=seguimiento['rut_estudiante']))
         except Exception as e:
             if conn_post: conn_post.rollback()
+            app.logger.error(f"Error al actualizar seguimiento (ID: {id_seguimiento}): {e}", exc_info=True)
             flash(f"Error al guardar los cambios del seguimiento: {e}", 'danger')
         finally:
             if conn_post: conn_post.close()
@@ -1007,7 +1020,7 @@ def descargar_estudiantes_csv():
         csv_data = output.getvalue().encode('utf-8-sig')
         return Response(csv_data, mimetype="text/csv; charset=utf-8-sig", headers={"Content-Disposition": "attachment;filename=estudiantes_seguimiento.csv"})
     except Exception as e:
-        print(f"Error al generar CSV de estudiantes: {e}")
+        app.logger.error(f"Error al generar CSV de estudiantes: {e}", exc_info=True)
         return "Error al generar el archivo CSV de estudiantes.", 500
     finally:
         if conn: conn.close()
@@ -1046,7 +1059,7 @@ def descargar_seguimientos_csv():
         csv_data = output.getvalue().encode('utf-8-sig')
         return Response(csv_data, mimetype="text/csv; charset=utf-8-sig", headers={"Content-Disposition": "attachment;filename=seguimientos_programa.csv"})
     except Exception as e:
-        print(f"Error al generar CSV de seguimientos: {e}")
+        app.logger.error(f"Error al generar CSV de seguimientos: {e}", exc_info=True)
         return "Error al generar el archivo CSV de seguimientos.", 500
     finally:
         if conn: conn.close()
@@ -1108,7 +1121,7 @@ def descargar_periodos_csv():
         )
 
     except Exception as e:
-        print(f"Error al generar CSV de periodos de atencion: {e}")
+        app.logger.error(f"Error al generar CSV de periodos de atencion: {e}", exc_info=True)
         flash("Ocurrió un error al generar el informe de periodos de atención.", "danger")
         return redirect(url_for('index'))
     finally:
@@ -1137,7 +1150,7 @@ def eliminar_seguimiento(id_seguimiento):
         flash('El seguimiento ha sido eliminado exitosamente.', 'success')
     except Exception as e:
         if conn: conn.rollback()
-        print(f"Error al eliminar seguimiento (ID: {id_seguimiento}): {e}")
+        app.logger.error(f"Error al eliminar seguimiento (ID: {id_seguimiento}): {e}", exc_info=True)
         flash('Ocurrió un error al eliminar el seguimiento.', 'danger')
         if rut_estudiante_para_redirigir:
             return redirect(url_for('detalle_estudiante', rut_estudiante=rut_estudiante_para_redirigir))
@@ -1168,7 +1181,7 @@ def cambiar_password():
             return redirect(url_for('login'))
         except Exception as e:
             if conn: conn.rollback()
-            print(f"Error al cambiar contraseña para usuario ID {current_user.id}: {e}")
+            app.logger.error(f"Error al cambiar contraseña para usuario ID {current_user.id}: {e}", exc_info=True)
             flash('Ocurrió un error al intentar cambiar tu contraseña.', 'danger')
             return redirect(url_for('cambiar_password'))
         finally:
@@ -1238,7 +1251,7 @@ def dashboard():
             labels_ideacion_anio=json.dumps(labels_ideacion_anio), data_ideacion=json.dumps(data_ideacion), data_tentativa=json.dumps(data_tentativa)
         )
     except Exception as e:
-        print(f"Error CRÍTICO en el dashboard: {e}")
+        app.logger.error(f"Error CRÍTICO en el dashboard: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         flash('Ocurrió un error muy grave al generar los datos del dashboard. Revisa los logs.', 'danger')
@@ -1277,17 +1290,19 @@ def login():
                 user_obj = User(id=user_data['id'], username=user_data['username'], password_hash=user_data['password_hash'], rol=user_data['rol'], nombre_completo=user_data['nombre_completo'], activo=user_data['activo'])
                 if user_obj.activo and user_obj.check_password(password_form):
                     login_user(user_obj, remember=form.remember_me.data)
+                    app.logger.info(f"Inicio de sesión exitoso para el usuario '{username_form}'")
                     next_page = request.args.get('next')
                     if not next_page or not next_page.startswith('/'):
                         next_page = url_for('index')
                     return redirect(next_page)
         except Exception as e:
-            print(f"Error durante el login: {e}")
+            app.logger.error(f"Error durante el login: {e}", exc_info=True)
             flash("Ocurrió un error durante el inicio de sesión.", "danger")
         finally:
             if conn:
                 conn.close()
         flash('Nombre de usuario o contraseña incorrectos, o la cuenta está inactiva.', 'danger')
+        app.logger.warning(f"Intento de inicio de sesión fallido para el usuario: '{username_form}'")
     return render_template('login.html', form=form)
 
 @app.route('/logout')
@@ -1353,7 +1368,7 @@ def api_reporte_periodos():
         return jsonify(reporte_data)
 
     except Exception as e:
-        print(f"Error en la API de reportes: {e}")
+        app.logger.error(f"Error en la API de reportes: {e}", exc_info=True)
         return jsonify({'error': 'Ocurrió un error al procesar la solicitud'}), 500
     finally:
         if conn:

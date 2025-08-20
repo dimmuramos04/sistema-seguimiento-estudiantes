@@ -19,6 +19,7 @@ analisis_datos.py
 reporte_seguridad.txt
 cert.pem
 key.pem
+app.log
 
 # Carpeta de gráficos generados
 graficos_generados/
